@@ -29,11 +29,12 @@
 Import('*')
 
 SimObject('Cache.py', sim_objects=[
-    'WriteAllocator', 'BaseCache', 'Cache', 'NoncoherentCache'],
+    'WriteAllocator', 'BaseCache', 'Cache', 'NoncoherentCache', 'SheperdCache'],
     enums=['Clusivity'])
 
 Source('base.cc')
 Source('cache.cc')
+Source('sheperd.cc')
 Source('cache_blk.cc')
 Source('mshr.cc')
 Source('mshr_queue.cc')
@@ -42,6 +43,7 @@ Source('write_queue.cc')
 Source('write_queue_entry.cc')
 
 DebugFlag('Cache')
+DebugFlag('SheperdCache')
 DebugFlag('CacheComp')
 DebugFlag('CachePort')
 DebugFlag('CacheRepl')
@@ -55,5 +57,5 @@ DebugFlag('HWPrefetchQueue')
 # array on each timing access, that you should probably have to ask for
 # it explicitly even above and beyond CacheAll.
 CompoundFlag('CacheAll', ['Cache', 'CacheComp', 'CachePort', 'CacheRepl',
-                          'CacheVerbose', 'HWPrefetch', 'MSHR'])
+                          'CacheVerbose', 'HWPrefetch', 'MSHR', 'SheperdCache'])
 
