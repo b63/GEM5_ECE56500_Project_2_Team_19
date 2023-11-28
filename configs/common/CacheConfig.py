@@ -98,9 +98,8 @@ def config_cache(options, system):
         dcache_class, icache_class, l2_cache_class, walk_cache_class = \
             core.HPI_DCache, core.HPI_ICache, core.HPI_L2, None
     else:
-        dcache_class, icache_class, walk_cache_class = \
-            L1_DCache, L1_ICache,  None
-        l2_cache_class = L2SheperdCache if options.sheperdcache else L2Cache
+        dcache_class, icache_class, l2_cache_class, walk_cache_class = \
+            L1_DCache, L1_ICache, L2Cache, None
 
         if buildEnv['TARGET_ISA'] in ['x86', 'riscv']:
             walk_cache_class = PageTableWalkerCache
