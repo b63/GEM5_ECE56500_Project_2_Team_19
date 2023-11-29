@@ -157,13 +157,6 @@ class Cache(BaseCache):
     cxx_header = 'mem/cache/cache.hh'
     cxx_class = 'gem5::Cache'
 
-class SheperdCache(BaseCache):
-    type = 'SheperdCache'
-    cxx_header = 'mem/cache/sheperd.hh'
-    cxx_class = 'gem5::SheperdCache'
-
-    writeback_clean = False
-
 class NoncoherentCache(BaseCache):
     type = 'NoncoherentCache'
     cxx_header = 'mem/cache/noncoherent_cache.hh'

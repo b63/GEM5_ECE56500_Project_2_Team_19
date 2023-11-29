@@ -37,6 +37,7 @@ from m5.params import *
 from m5.proxy import *
 from m5.objects.ClockedObject import ClockedObject
 from m5.objects.IndexingPolicies import *
+from m5.objects.ReplacementPolicies import *
 
 class BaseTags(ClockedObject):
     type = 'BaseTags'
@@ -66,11 +67,23 @@ class BaseTags(ClockedObject):
 
     # Get indexing policy
     indexing_policy = Param.BaseIndexingPolicy(SetAssociative(),
-        "Indexing policy")
+        "indexing policy")
 
     # Set the indexing entry size as the block size
     entry_size = Param.Int(Parent.cache_line_size,
                            "Indexing entry size in bytes")
+
+class ShepherdTags(BaseTags):
+    type = 'ShepherdTags'
+    cxx_header = "mem/cache/tags/shepherd_tags.hh"
+    cxx_class = 'gem5::ShepherdTags'
+
+    # Get the cache associativity
+    assoc = Param.Int(Parent.assoc, "associativity of main cache")
+    sc_assoc = Param.Int(Parent.sc_assoc, "associativity of Shepherd cache")
+
+    indexing_policy = Param.BaseIndexingPolicy(SetAssociative(), "indexing policy")
+    replacement_policy = Param.BaseReplacementPolicy(LRURP(), "Replacement policy")
 
 class BaseSetAssoc(BaseTags):
     type = 'BaseSetAssoc'
