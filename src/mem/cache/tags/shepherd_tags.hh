@@ -69,9 +69,15 @@ class ShepherdTags : public BaseTags
     unsigned mc_assoc;
     /* Associativity associated with the Shepherd Cache. */
     unsigned sc_assoc;
+    /* number of sets */
+    size_t const num_sets;
 
     /** The cache blocks. */
     std::vector<ShepherdBlk> blks;
+    /** list of head pointers for each set */
+    std::vector<unsigned> _heads;
+    /** list of next value counters for each SC block for each set*/
+    std::vector<std::vector<unsigned> > _nvc;
 
     /** Whether tags and data are accessed sequentially. */
     const bool sequentialAccess;

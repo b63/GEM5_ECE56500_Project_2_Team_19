@@ -21,10 +21,12 @@ ShepherdBlk::print() const
 }
 
 ShepherdTags::ShepherdTags(const ShepherdTagsParams& p)
-    : BaseTags(p), mc_assoc(p.assoc), sc_assoc(p.sc_assoc), blks(p.size / p.block_size),
-     sequentialAccess(p.sequential_access),
+    : BaseTags(p), mc_assoc(p.assoc - p.sc_assoc), sc_assoc(p.sc_assoc), num_sets(p.size / (p.entry_size * p.assoc), 0),
+    blks(p.size / p.block_size),
+    _heads(num_sets), _nvc(num_sets, std::vector<unsigned>(p.sc_assoc, 1)), sequentialAccess(p.sequential_access),
      replacementPolicy(p.replacement_policy)
 {
+    fatal_if(sc_assoc + 1 > p.assoc, "Shepherd cache associativity too large, MC associativity must be at least one");
     // There must be a indexing policy
     fatal_if(!p.indexing_policy, "An indexing policy is required");
 
@@ -56,12 +58,16 @@ void ShepherdTags::tagsInit()
 
 CacheBlk* ShepherdTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 {
-    ShepherdBlk *blk = dynamic_cast<ShepherdBlk*>(findBlock(pkt->getAddr(), pkt->isSecure()));
+    ShepherdBlk *blk = dynamic_cast<ShepherdBlk*>(BaseTags::findBlock(pkt->getAddr(), pkt->isSecure()));
 
     // Update Stats
     stats.tagAccesses += sc_assoc + mc_assoc;
-    if (blk != nullptr) {
-        stats.dataAccesses += 1;
+    if (sequentialAccess) {
+        if (blk != nullptr) {
+            stats.dataAccesses += 1;
+        }
+    } else {
+        stats.dataAccesses += sc_assoc+mc_assoc;
     }
 
     if (blk != nullptr) {
@@ -69,8 +75,15 @@ CacheBlk* ShepherdTags::accessBlock(const PacketPtr pkt, Cycles &lat)
         blk->increaseRefCount();
         // Update LRU data
         replacementPolicy->touch(blk->replacementData, pkt);
-        //Increment Shepherd Counter for block hit
-        blk->counters[blk->getSet()] += 1;
+        //Increment all counters relative to all SC blocks in this set
+        unsigned set = blk->getSet();
+        for (unsigned way = 0; way < sc_assoc; ++way)
+        {
+            blk->counters[way] = _nvc[set][way];
+            // update next value counter
+            if (_nvc[set][way] < mc_assoc+sc_assoc)
+                ++_nvc[set][way];
+        }
     }
 
     // Return Tag lookup latency
@@ -81,11 +94,12 @@ CacheBlk* ShepherdTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 
 void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
 {
-        assert(!blk->isValid());
+    assert(!blk->isValid());
+    ShepherdBlk* sblk = dynamic_cast<ShepherdBlk*>(blk);
 
-    if (!blk->isSc) {
+    if (!sblk->isSc) {
         // Assert that SC head is valid
-        int old_head = SheperdTag::_heads[blk->getSet()];
+        int old_head = _heads[sblk->getSet()];
         Cacheblk *sc_head = indexingPolicy->getEntry(blk->getSet(), old_head);
         assert(sc_head->isValid());
 
