@@ -123,6 +123,9 @@ parser = argparse.ArgumentParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
+# add Shepherd cache options
+parser.add_argument("--shepherdcache", action="store_true", help="use Shepherd cache for L2 cache")
+
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 

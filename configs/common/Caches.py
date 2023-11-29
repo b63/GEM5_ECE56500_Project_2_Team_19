@@ -71,14 +71,10 @@ class L2Cache(Cache):
     tgts_per_mshr = 12
     write_buffers = 8
 
-class L2SheperdCache(SheperdCache):
+class L2ShepherdCache(L2Cache):
     assoc = 8
-    tag_latency = 20
-    data_latency = 20
-    response_latency = 20
-    mshrs = 20
-    tgts_per_mshr = 12
-    write_buffers = 8
+    sc_assoc = 2
+    tags = ShepherdTags()
 
 class IOCache(Cache):
     assoc = 8

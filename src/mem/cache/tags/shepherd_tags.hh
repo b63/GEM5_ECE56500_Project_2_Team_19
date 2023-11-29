@@ -21,6 +21,7 @@
 #include "mem/cache/tags/indexing_policies/base.hh"
 #include "mem/packet.hh"
 #include "params/ShepherdTags.hh"
+#include "debug/ShepherdTags.hh"
 
 namespace gem5
 {

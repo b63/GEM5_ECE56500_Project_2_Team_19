@@ -100,7 +100,7 @@ def config_cache(options, system):
     else:
         dcache_class, icache_class, walk_cache_class = \
             L1_DCache, L1_ICache,  None
-        l2_cache_class = L2SheperdCache if options.sheperdcache else L2Cache
+        l2_cache_class = L2ShepherdCache if options.shepherdcache else L2Cache
 
         if buildEnv['TARGET_ISA'] in ['x86', 'riscv']:
             walk_cache_class = PageTableWalkerCache
