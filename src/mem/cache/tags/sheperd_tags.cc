@@ -58,7 +58,7 @@
 namespace gem5
 {
 
-SHPTAG::ShepherdBlk* accessBlock(const PacketPtr pkt, Cycles &lat)
+SHPTAG::accessBlock(const PacketPtr pkt, Cycles &lat)
 {
     ShepherdBlk *blk = findBlock(pkt->getAddr(), pkt->isSecure());
 
@@ -74,7 +74,7 @@ SHPTAG::ShepherdBlk* accessBlock(const PacketPtr pkt, Cycles &lat)
         // Update LRU data
         replacementPolicy->touch(blk->replacementData, pkt);
         //Increment Shepherd Counter for block hit
-        blk.counter += 1;
+        blk.counter[blk.getSet()] += 1;
     }
 
     // Return Tag lookup latency
