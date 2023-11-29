@@ -58,9 +58,9 @@
 namespace gem5
 {
 
-SHPTAG::accessBlock(const PacketPtr pkt, Cycles &lat)
+FALRU::accessBlock(const PacketPtr pkt, Cycles &lat)
 {
-    ShepherdBlk *blk = findBlock(pkt->getAddr(), pkt->isSecure());
+    CacheBlk *blk = findBlock(pkt->getAddr(), pkt->isSecure());
 
     // Update Stats
     stats.tagAccesses += allocAssoc;
@@ -74,13 +74,62 @@ SHPTAG::accessBlock(const PacketPtr pkt, Cycles &lat)
         // Update LRU data
         replacementPolicy->touch(blk->replacementData, pkt);
         //Increment Shepherd Counter for block hit
-        blk.counter[blk.getSet()] += 1;
+        blk.counter[blk->getSet()] += 1;
     }
 
     // Return Tag lookup latency
     lat = lookupLatency;
 
     return blk;
+}
+
+FALRU::insertBlock(const PacketPtr pkt, CacheBlk* blk)
+{
+    assert(!blk->isValid());
+
+    if (!blk->isSc) {
+        // Assert that SC head is valid
+        int old_head = SheperdTag::_heads[blk->getSet()];
+        Cacheblk *sc_head = indexingPolicy->getEntry(blk->getSet(), old_head);
+        assert(sc_head->isValid());
+
+        // Moving SC head to victim block in the MC
+        BaseTags::moveBlock(sc_head, blk);
+        sc_head->isSc = false;
+
+        // Reset the counters for all the MC blocks in the set
+        int way = SheperdTags::sc_size;
+        while (SheperdTags::sc_size < (SheperdTags::sc_size + SheperdTags::mc_size - 1)) {
+            CacheBlk *mc_block = indexingPolicy->getEntry(blk->getSet(), way);
+            mc_block.counters[old_head] = 0;
+            way += 1;
+        }
+
+        // Setting new head
+        SheperdTag::_heads[blk->getSet()] = (SheperdTag::_heads[blk->getSet()] + 1) % SheperdTags::sc_size;
+
+        // Get pointer to old SC head to replace it
+        blk = indexingPolicy->getEntry(blk->getSet(), old_head);
+    }
+    // Block where data needs to be inserted is a SC block
+    BaseTags::insertBlock(blk);
+
+    stats.tagsInUse += 1;
+
+    replacementPolicy->reset(blk->replacementData, pkt);
+}
+
+FALRU::findVictim(Addr addr, const bool is_secure, const std::size_t size, std::vector<CacheBlk*>& evict_blks)
+{
+    // Get a vecotr of possible victims
+    const std::vector<ReplaceableEntry*> entries = BaseIndexingPolicy::getPossibleEntries(addr);
+
+    int index = 0;
+    while (index < entries.size) {
+        SheperdBlk* blk = static_cast<SheperdBlk*>(indexingPolicy->getEntry());
+    }
+
+
 }
 
 
