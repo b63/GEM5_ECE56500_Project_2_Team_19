@@ -4,6 +4,11 @@ from pprint import pprint
 import subprocess
 import argparse
 
+def add_if_exists(dic, key, regex, data, group=1):
+    res = re.search(regex, data)
+    if res and res.group(group):
+        dic[key] = res.group(group)
+
 
 benchmarks = ['perlbench_s', 'gcc_s', 'bwaves_s','mcf_s', 'cactuBSSN_s', 'deepsjeng_s', 'lbm_s', 
                 'omnetpp_s', 'wrf_s', 'xalancbmk_s', 'specrand_is', 'specrand_fs', 'cam4_s', 'pop2_s', 
@@ -23,11 +28,15 @@ parser = argparse.ArgumentParser(
                     prog='Benchmark Runner',
                     description='Runs and compiles data from benchmarks')
 
-parser.add_argument('-c', '--cpu_type', default='X86O3CPU')
-parser.add_argument('-b','--benchmark')
-parser.add_argument('-s2', '--l2_size', default='256kB')
-parser.add_argument('-a2', '--l2_assoc', default='4')
-parser.add_argument('-s17', action='store_true', default=False)
+parser.add_argument('-c', '--cpu_type', default='X86O3CPU', help="specify CPU type")
+parser.add_argument('-b','--benchmark', help="specify which single benchmark to run")
+parser.add_argument('-s2', '--l2_size', default='256kB', help="specify size of L2 cache")
+parser.add_argument('-a2', '--l2_assoc', default='4',           help="specify associativity for L2 cache")
+parser.add_argument('-s17', action='store_true', default=False, help="use 2k17 benchmark suite")
+parser.add_argument('-v', '--verbose', action='store_true', default=False,   help="verbose, prints commands that are executed")
+
+parser.add_argument('-sc','--shepherdcache', action='store_true', help="use Shepherd Cache for L2 cache")
+
 args = parser.parse_args()
 
 if args.benchmark:
@@ -42,23 +51,37 @@ if args.s17:
 
 for benchmark in benchmarks:
     print(f"Running {benchmark}...")    
-    proc = subprocess.Popen(["./build/ECE565-ARM/gem5.opt", "configs/spec/spec_se.py", "-b", benchmark, 
-    	   f"--cpu-type={args.cpu_type}", "--maxinsts=1000000", "--l1d_size=64kB", 
-           "--l1i_size=16kB", "--caches", "--l2cache",
-           f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    proc.communicate()
+
+    command = [ "./build/X86/gem5.opt", "configs/spec/spec_se.py"]
+    command += ["-b", benchmark]
+    command += [f"--cpu-type={args.cpu_type}", "--maxinsts=1000000"]
+    command += ["--l1d_size=64kB", "--l1i_size=16kB"] 
+    command += ["--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"]
+
+    if args.shepherdcache:
+        command += ["--shepherdcache"]
+
+    if args.verbose:
+        print(f"> {' '.join(command)}")
+
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf8")
+    pstout, pstderr = proc.communicate()
 
     if proc.returncode:
-        print(f"Failed to run {benchmark}")
+        print(f"Failed to run {benchmark} return code {proc.returncode}")
+        print(pstderr)
 
     print("Reading stats from the benchmark...")
     with open('m5out/stats.txt', 'r') as f:
         contents = f.read()
 
     print("Processing stats from the benchmark...")
+
+    
     temp = {}
-    temp["CPI"] = re.search(r'cpi *(\S+)', contents).group(1)
+    add_if_exists(temp, "CPI", r'cpi *(\S+)', contents)
+    add_if_exists(temp, "Total L2 Misses", r'system.l2.overallMisses::total *(\S+)', contents)
+    add_if_exists(temp, "Total L2 Accesses", r'system.l2.overallAccesses::total *(\S+)', contents)
     data[benchmark] = temp
 
 
