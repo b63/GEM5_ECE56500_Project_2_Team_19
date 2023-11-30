@@ -108,29 +108,32 @@ void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
         // victim block is in MC
         ShepherdBlk* mc_blk = sblk;
 
-        // Assert that SC head is valid
+        // get head of SC
         int old_head = _heads[set];
         ShepherdBlk* sc_head = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, old_head));
-        assert(sc_head->isValid());
 
-        // Moving SC head to victim block in the MC
-        BaseTags::moveBlock(sc_head, mc_blk);
-        mc_blk->isSC  = false; // the old SC head has been moved to main cache (blk)
-        sc_head->isSC = true;  // mark the block as being in SC
-
-        // Reset the counters relative to old_head for all the blocks in the set
-        for (unsigned way = 0; way < sc_assoc + mc_assoc; ++way)
+        // if SC head is not valid (SC is empty), then MC is not full
+        if (sc_head->isValid())
         {
-            ShepherdBlk* block = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
-            block->counters[old_head] = 0;
+            // Moving SC head to victim block in the MC
+            BaseTags::moveBlock(sc_head, mc_blk);
+            mc_blk->isSC  = false; // the old SC head has been moved to main cache (blk)
+            sc_head->isSC = true;  // mark the block as being in SC
+
+            // Reset the counters relative to old_head for all the blocks in the set
+            for (unsigned way = 0; way < sc_assoc + mc_assoc; ++way)
+            {
+                ShepherdBlk* block = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
+                block->counters[old_head] = 0;
+            }
+
+            // Setting new head
+            _heads[set] = (_heads[set] + 1) % sc_assoc;
+
+            // insert new block at the old SC head
+            sblk = sc_head;
+            blk  = static_cast<CacheBlk*>(sc_head);
         }
-
-        // Setting new head
-        _heads[set] = (_heads[set] + 1) % sc_assoc;
-
-        // insert new block at the old SC head
-        sblk = sc_head;
-        blk  = static_cast<CacheBlk*>(sc_head);
     }
     // Block where data needs to be inserted is a SC block
     BaseTags::insertBlock(pkt, blk);
