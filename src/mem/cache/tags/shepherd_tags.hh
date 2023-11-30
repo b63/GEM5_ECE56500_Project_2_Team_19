@@ -13,6 +13,7 @@
 
 #include "base/logging.hh"
 #include "base/types.hh"
+#include "base/trace.hh"
 #include "mem/cache/base.hh"
 #include "mem/cache/cache_blk.hh"
 #include "mem/cache/replacement_policies/base.hh"
@@ -131,6 +132,31 @@ class ShepherdTags : public BaseTags
     CacheBlk* findVictim(Addr addr, const bool is_secure,
                          const std::size_t size,
                          std::vector<CacheBlk*>& evict_blks) override;
+
+
+    /**
+     * Move a block's metadata and tag to another location decided by the replacement
+     * policy. It behaves as a swap, however, since the destination block
+     * should be invalid, the result is a move.
+     *
+     * @param src_blk The source block.
+     * @param dest_blk The destination block. Must be invalid.
+     */
+    void moveBlockWithTag(CacheBlk *src_blk, CacheBlk *dest_blk)
+    {
+        assert(!dest_blk->isValid());
+        assert(src_blk->isValid());
+
+        // Move src's contents to dest's (along with tag)
+
+        //*static_cast<TaggedEntry*>(dest_blk) = std::move(*static_cast<TaggedEntry*>(src_blk));
+        DPRINTF(ShepherdTags, "%s moving src [%s] to [%s]\n", __func__, src_blk->print(), dest_blk->print());
+        *dest_blk = std::move(*src_blk);
+        DPRINTF(ShepherdTags, "%s moved src [%s] and [%s]\n", __func__, src_blk->print(), dest_blk->print());
+
+        assert(dest_blk->isValid());
+        assert(!src_blk->isValid());
+    }
 
     /**
      * Insert the new block into the cache and update replacement data.

@@ -116,7 +116,7 @@ void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
         if (sc_head->isValid())
         {
             // Moving SC head to victim block in the MC
-            BaseTags::moveBlock(sc_head, mc_blk);
+            moveBlockWithTag(sc_head, mc_blk);
             mc_blk->isSC  = false; // the old SC head has been moved to main cache (blk)
             sc_head->isSC = true;  // mark the block as being in SC
 
