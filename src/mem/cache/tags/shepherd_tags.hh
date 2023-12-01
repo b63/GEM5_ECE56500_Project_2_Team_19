@@ -32,14 +32,17 @@ namespace gem5
  */
 class ShepherdBlk : public CacheBlk
 {
-  public:
-    ShepherdBlk() : CacheBlk(),  isSC(false), counters()
-        {}
 
+protected:
     /** flag to indicate if the cache block is in SC or in MC */
-    bool isSC; 
+    bool _isSC; 
+
+  public:
     /* imminence counters for each SC entry in a set. Should be equal to sc_size. */
     std::vector<unsigned> counters;
+
+    ShepherdBlk() : CacheBlk(),  _isSC(false), counters()
+        {}
 
     void init_counters(unsigned sc_size)
     {
@@ -48,7 +51,10 @@ class ShepherdBlk : public CacheBlk
     }
 
     inline void setSC(bool is_sc)
-    { isSC = is_sc; }
+    { _isSC = is_sc; }
+
+    inline bool isSC() const
+    { return _isSC; }
 
     /**
      * Pretty-print information.

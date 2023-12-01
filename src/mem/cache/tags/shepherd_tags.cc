@@ -18,7 +18,7 @@ std::string
 ShepherdBlk::print() const
 {
     // TODO: print the counter values as well
-    return csprintf("%s isSC (%i) counters size (%u)", CacheBlk::print(), isSC, counters.size());
+    return csprintf("%s isSC (%i) counters size (%u)", CacheBlk::print(), _isSC, counters.size());
 }
 
 ShepherdTags::ShepherdTags(const ShepherdTagsParams& p)
@@ -49,7 +49,7 @@ void ShepherdTags::tagsInit()
 
         // Link block to indexing policy
         indexingPolicy->setEntry(blk, blk_index);
-        if (blk->getSet() < sc_assoc)
+        if (blk->getWay() < sc_assoc)
             blk->setSC(true);
 
         // Associate a data chunk to the block
@@ -99,41 +99,45 @@ CacheBlk* ShepherdTags::accessBlock(const PacketPtr pkt, Cycles &lat)
 
 void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
 {
-    assert(blk && !blk->isValid());
+    assert(blk);
     ShepherdBlk* sblk = dynamic_cast<ShepherdBlk*>(blk);
     DPRINTF(ShepherdTags, "%s at [%s] for %s\n", __func__, sblk->print(), pkt->print());
 
     unsigned set = blk->getSet();
-    if (!sblk->isSC) {
-        // victim block is in MC
-        ShepherdBlk* mc_blk = sblk;
-
+    if (sblk->isSC() && sblk->isValid()) {
+        // victim block is SC and is valid, should be the SC head
         // get head of SC
         int old_head = _heads[set];
+
         ShepherdBlk* sc_head = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, old_head));
+        assert(sc_head == sblk);
 
-        // if SC head is not valid (SC is empty), then MC is not full
-        if (sc_head->isValid())
+        ShepherdBlk* mc_blk = nullptr;
+        // there should be a block in MC that is invalid
+        for (unsigned way = sc_assoc; way < sc_assoc + mc_assoc; ++way)
         {
-            // Moving SC head to victim block in the MC
-            moveBlockWithTag(sc_head, mc_blk);
-            mc_blk->isSC  = false; // the old SC head has been moved to main cache (blk)
-            sc_head->isSC = true;  // mark the block as being in SC
-
-            // Reset the counters relative to old_head for all the blocks in the set
-            for (unsigned way = 0; way < sc_assoc + mc_assoc; ++way)
-            {
-                ShepherdBlk* block = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
-                block->counters[old_head] = 0;
-            }
-
-            // Setting new head
-            _heads[set] = (_heads[set] + 1) % sc_assoc;
-
-            // insert new block at the old SC head
-            sblk = sc_head;
-            blk  = static_cast<CacheBlk*>(sc_head);
+            mc_blk = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
+            assert(!mc_blk->isSC()); // should be a MC block
+            if (!mc_blk->isValid())
+                break;
         }
+        // victim block is in MC, should be invalid
+        assert(mc_blk && !mc_blk->isValid());
+
+        // Moving SC head to victim block in the MC
+        BaseTags::moveBlock(sc_head, mc_blk);
+        mc_blk->setSC(false); // the old SC head has been moved to main cache (blk)
+        sc_head->setSC(true);  // mark the block as being in SC
+
+        // Reset the counters relative to old_head for all the blocks in the set
+        for (unsigned way = 0; way < sc_assoc + mc_assoc; ++way)
+        {
+            ShepherdBlk* block = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
+            block->counters[old_head] = 0;
+        }
+
+        // Setting new head
+        _heads[set] = (_heads[set] + 1) % sc_assoc;
     }
     // Block where data needs to be inserted is a SC block
     BaseTags::insertBlock(pkt, blk);
@@ -142,7 +146,6 @@ void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
 
     replacementPolicy->reset(blk->replacementData, pkt);
 };
-
 
 CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
                         const std::size_t size,
@@ -153,28 +156,35 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
 
     DPRINTF(ShepherdTags, "%s for %#018x\n", __func__, addr);
 
+    if (!entries.size()) return nullptr;
+
     //unsigned set = dynamic_cast<SetAssociative*>(indexingPolicy)->extractSet(addr);
     unsigned set = entries[0]->getSet();
-
-    if (!entries.size()) return nullptr;
 
     // check for empty MC blocks in the set
     for (unsigned i = 0; i < entries.size(); ++i)
     {
         ShepherdBlk* sblk = dynamic_cast<ShepherdBlk*>(entries[i]);
-        if (!sblk->isSC && !sblk->isValid())
+        if (!sblk->isSC() && !sblk->isValid())
+        {
+            DPRINTF(ShepherdTags, "%s victim is invalid MC block [%s]\n", __func__, sblk->print());
             return sblk;
+        }
     }
 
     // check for empty SC blocks in the set
     for (unsigned i = 0; i < entries.size(); ++i)
     {
         ShepherdBlk* sblk = dynamic_cast<ShepherdBlk*>(entries[i]);
-        if (sblk->isSC && !sblk->isValid())
+        if (sblk->isSC() && !sblk->isValid())
+        {
+            DPRINTF(ShepherdTags, "%s victim is invalid SC block [%s]\n", __func__, sblk->print());
             return sblk;
+        }
     }
 
     // the set is full, need to evict MC and move SC head there to make room in SC
+    // so return SC head for now
     // find MC block with either zero counter value
     unsigned head = _heads[set];
     assert(head < sc_assoc);
@@ -184,7 +194,7 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
     for (unsigned way = sc_assoc; way < sc_assoc+mc_assoc; ++way)
     {
         ShepherdBlk* sblk = dynamic_cast<ShepherdBlk*>(indexingPolicy->getEntry(set, way));
-        assert(!sblk->isSC); // should not be in SC
+        assert(!sblk->isSC()); // should not be in SC
 
         if (!sblk->counters[head])
             mc_victims.push_back(sblk);
@@ -203,7 +213,15 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
     }
 
     evict_blks.push_back(victim);
-    return victim;
+
+    CacheBlk* sc_head = dynamic_cast<CacheBlk*>(indexingPolicy->getEntry(set, head));
+    DPRINTF(ShepherdTags, "%s victim is SC head [%s], evicting MC block [%s]\n", __func__, sc_head->print(), victim->print());
+
+    // the victim block will be the SC head (it will be moved in insertBlock)
+    return sc_head;
 };
+
+
+
 
 } // namespace gem5
