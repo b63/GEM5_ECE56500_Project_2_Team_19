@@ -10,7 +10,7 @@
 
 namespace gem5
 {
-// ShepherdTags* ShepherdTagsParams::create() const {
+// ShepherdTags* ShepherdTagsPaVerboserams::create() const {
 //     return new ShepherdTags(*this);
 // }
 
@@ -18,7 +18,10 @@ std::string
 ShepherdBlk::print() const
 {
     // TODO: print the counter values as well
-    return csprintf("%s isSC (%i) counters size (%u)", CacheBlk::print(), _isSC, counters.size());
+    std::string str_counters;
+    for (auto x : counters)
+        str_counters += std::to_string(x) + " ";
+    return csprintf("%s isSC (%i) counters ( %s)", CacheBlk::print(), _isSC, str_counters);
 }
 
 ShepherdTags::ShepherdTags(const ShepherdTagsParams& p)
@@ -58,6 +61,13 @@ void ShepherdTags::tagsInit()
         // Associate a replacement data entry to the block
         blk->replacementData = replacementPolicy->instantiateEntry();
     }
+}
+
+void ShepherdTags::moveBlockData(ShepherdBlk* src, ShepherdBlk* dst)
+{
+    assert(src && src->data);
+    assert(dst && dst->data);
+    std::memcpy(dst->data, (const uint8_t*)src->data, blkSize);
 }
 
 CacheBlk* ShepherdTags::accessBlock(const PacketPtr pkt, Cycles &lat)
@@ -125,7 +135,9 @@ void ShepherdTags::insertBlock(const PacketPtr pkt, CacheBlk *blk)
         assert(mc_blk && !mc_blk->isValid());
 
         // Moving SC head to victim block in the MC
-        BaseTags::moveBlock(sc_head, mc_blk);
+        BaseTags::moveBlock(sc_head, mc_blk); // only moves metadata
+        moveBlockData(sc_head, mc_blk); // move (copy) the actual data
+
         mc_blk->setSC(false); // the old SC head has been moved to main cache (blk)
         sc_head->setSC(true);  // mark the block as being in SC
 

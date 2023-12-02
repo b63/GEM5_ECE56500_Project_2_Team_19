@@ -93,6 +93,8 @@ class ShepherdTags : public BaseTags
     /** Replacement policy */
     replacement_policy::Base *replacementPolicy;
 
+    /* Move cache block data from src to dst. */
+    void moveBlockData(ShepherdBlk* src, ShepherdBlk* dst);
 
   public:
     /** Convenience typedef. */
