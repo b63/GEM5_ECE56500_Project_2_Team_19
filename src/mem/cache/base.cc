@@ -49,6 +49,7 @@
 #include "base/logging.hh"
 #include "debug/Cache.hh"
 #include "debug/CacheComp.hh"
+#include "debug/CacheData.hh"
 #include "debug/CachePort.hh"
 #include "debug/CacheRepl.hh"
 #include "debug/CacheVerbose.hh"
@@ -66,6 +67,18 @@
 namespace gem5
 {
 
+std::string _cache_block_str(uint8_t *data, unsigned size)
+{
+    std::string str_data;
+    for (unsigned i = 0; i < size; ++i)
+    {
+        str_data += csprintf("%02x", *(data+i));
+        if (i > 0 && i+1 != size && i % 8 == 0)
+            str_data += " ";
+    }
+
+    return str_data;
+}
 BaseCache::CacheResponsePort::CacheResponsePort(const std::string &_name,
                                           BaseCache *_cache,
                                           const std::string &_label)
@@ -779,7 +792,13 @@ BaseCache::updateBlockData(CacheBlk *blk, const PacketPtr cpkt,
 
     // Actually perform the data update
     if (cpkt) {
+        DPRINTF(CacheData, "%s for %s with block  %s\n", __func__, cpkt->print(), blk->print());
+        if(has_old_data)
+            DPRINTF(CacheData, "%s old data: [%s]\n", __func__, _cache_block_str(blk->data, blkSize));
+        else
+            DPRINTF(CacheData, "%s no old data\n", __func__);
         cpkt->writeDataToBlock(blk->data, blkSize);
+        DPRINTF(CacheData, "%s new data: [%s]\n", __func__, _cache_block_str(blk->data, blkSize));
     }
 
     if (ppDataUpdate->hasListeners()) {
@@ -1155,6 +1174,9 @@ BaseCache::satisfyRequest(PacketPtr pkt, CacheBlk *blk, bool, bool)
         // all read responses have a data payload
         assert(pkt->hasRespData());
         pkt->setDataFromBlock(blk->data, blkSize);
+        DPRINTF(CacheData, "%s for %s response block %s\n", __func__, pkt->print(), blk->print());
+        DPRINTF(CacheData, "%s block data [%s]\n", __func__, _cache_block_str(blk->data, blkSize));
+
     } else if (pkt->isUpgrade()) {
         // sanity check
         assert(!pkt->hasSharers());
@@ -1584,7 +1606,6 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 
     DPRINTF(Cache, "Block addr %#llx (%s) moving from %s to %s\n",
             addr, is_secure ? "s" : "ns", old_state, blk->print());
-
     // if we got new data, copy it in (checking for a read response
     // and a response that has data is the same in the end)
     if (pkt->isRead()) {
