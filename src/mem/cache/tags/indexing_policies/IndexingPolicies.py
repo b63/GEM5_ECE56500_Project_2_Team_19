@@ -43,6 +43,11 @@ class BaseIndexingPolicy(SimObject):
     # Get the associativity
     assoc = Param.Int(Parent.assoc, "associativity")
 
+class SetAssociativeGeneric(BaseIndexingPolicy):
+    type = 'SetAssociativeGeneric'
+    cxx_class = 'gem5::SetAssociativeGeneric'
+    cxx_header = "mem/cache/tags/indexing_policies/set_associative_generic.hh"
+
 class SetAssociative(BaseIndexingPolicy):
     type = 'SetAssociative'
     cxx_class = 'gem5::SetAssociative'

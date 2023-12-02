@@ -82,6 +82,9 @@ class ShepherdTags(BaseTags):
     assoc = Param.Int(Parent.assoc, "associativity of main cache")
     sc_assoc = Param.Int(Parent.sc_assoc, "associativity of Shepherd cache")
 
+    # Get indexing policy
+    indexing_policy = SetAssociativeGeneric()
+
     replacement_policy = Param.BaseReplacementPolicy(LRURP(), "Replacement policy")
 
 class BaseSetAssoc(BaseTags):

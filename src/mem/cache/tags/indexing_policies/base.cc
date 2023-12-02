@@ -45,11 +45,14 @@
  */
 
 #include "mem/cache/tags/indexing_policies/base.hh"
+#include "mem/cache/tags/indexing_policies/set_associative_generic.hh"
 
 #include <cstdlib>
 
 #include "base/intmath.hh"
 #include "base/logging.hh"
+#include "debug/Cache.hh"
+#include "base/trace.hh"
 #include "mem/cache/replacement_policies/replaceable_entry.hh"
 
 namespace gem5
@@ -61,8 +64,18 @@ BaseIndexingPolicy::BaseIndexingPolicy(const Params &p)
       setShift(floorLog2(p.entry_size)), setMask(numSets - 1), sets(numSets),
       tagShift(setShift + floorLog2(numSets))
 {
-    fatal_if(!isPowerOf2(numSets), "# of sets must be non-zero and a power " \
-             "of 2");
+    if (dynamic_cast<SetAssociativeGeneric*>(this) == nullptr)
+    {
+        fatal_if(!isPowerOf2(numSets), "# of sets must be non-zero and a power ");
+    }
+    else
+    {
+        unsigned num_sets_req = (p.size + p.entry_size * p.assoc - 1) / (p.entry_size * p.assoc);
+        uint64_t req_size = ((uint64_t)num_sets_req) * p.entry_size * p.assoc;
+        DPRINTF(Cache, "%s %u sets required, cache size fits %u; required size %lu\n", __func__,
+                    num_sets_req, numSets, req_size);
+        fatal_if(num_sets_req != numSets, "the total number of cache frames cannot be evenly divided into required ways, modify cache size");
+    }
     fatal_if(assoc <= 0, "associativity must be greater than zero");
 
     // Make space for the entries
