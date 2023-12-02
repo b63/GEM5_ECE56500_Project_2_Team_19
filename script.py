@@ -8,6 +8,35 @@ def add_if_exists(dic, key, regex, data, group=1):
     res = re.search(regex, data)
     if res and res.group(group):
         dic[key] = res.group(group)
+        return dic[key]
+    return None
+
+def convert_size_to_bytes(size_str):
+    units = {
+        "B": 1,
+        "KB": 1024,
+        "MB": 1024**2,
+        "GB": 1024**3,
+        "TB": 1024**4
+    }
+
+    res = re.search(r'(\d+)([A-Za-z]+)', size_str)
+    number = int(res.group(1))
+    unit = res.group(2)
+
+    return number * units[unit.upper()]
+
+def convert_size_to_mb(bytes, unit = "KB"):
+    units = {
+        "B": 1,
+        "KB": 1024,
+        "MB": 1024**2,
+        "GB": 1024**3,
+        "TB": 1024**4
+    }
+
+    x = bytes/units[unit]
+    return f"{x:0.1f}{unit}"
 
 
 benchmarks = ['perlbench_s', 'gcc_s', 'bwaves_s','mcf_s', 'cactuBSSN_s', 'deepsjeng_s', 'lbm_s', 
@@ -31,7 +60,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-c', '--cpu_type', default='X86O3CPU', help="specify CPU type")
 parser.add_argument('-b','--benchmark', help="specify which single benchmark to run")
 parser.add_argument('-s2', '--l2_size', default='256kB', help="specify size of L2 cache")
-parser.add_argument('-a2', '--l2_assoc', default='4',           help="specify associativity for L2 cache")
+parser.add_argument('-a2', '--l2_assoc', default='4',    help="specify associativity for L2 cache")
+parser.add_argument('-asc2', '--l2_sc_assoc', default='2', help="specify associativity L2 Shepherd Cache")
 parser.add_argument('-s17', action='store_true', default=False, help="use 2k17 benchmark suite")
 parser.add_argument('-v', '--verbose', action='store_true', default=False,   help="verbose, prints commands that are executed")
 
@@ -52,14 +82,26 @@ if args.s17:
 for benchmark in benchmarks:
     print(f"Running {benchmark}...")    
 
-    command = [ "./build/X86/gem5.opt", "configs/spec/spec_se.py"]
+    command = [ "./build/ECE565-X86/gem5.opt", "configs/spec/spec_se.py"]
     command += ["-b", benchmark]
     command += [f"--cpu-type={args.cpu_type}", "--maxinsts=1000000"]
     command += ["--l1d_size=64kB", "--l1i_size=16kB"] 
-    command += ["--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"]
+
+    entry_size = 64
+    cache_size = convert_size_to_bytes(args.l2_size)
+    num_blocks = cache_size / entry_size
+    ways = int(args.l2_assoc)
+
+    if num_blocks % ways != 0:
+        cache_size_req = ((num_blocks + ways-1)//ways) * ways * entry_size
+        inc_f = (cache_size_req - cache_size)/cache_size * 100
+        print(f"NOTE: increasing cache size from {convert_size_to_mb(cache_size)} to {convert_size_to_mb(cache_size_req)}, +{inc_f:0.2f}% increase")
+        cache_size = cache_size_req
+
+    command += ["--caches", "--l2cache", f"--l2_size={cache_size:.0f}", f"--l2_assoc={ways}"]
 
     if args.shepherdcache:
-        command += ["--shepherdcache"]
+        command += ["--shepherdcache", f"--l2_sc_assoc={args.l2_sc_assoc}"]
 
     if args.verbose:
         print(f"> {' '.join(command)}")
@@ -82,6 +124,11 @@ for benchmark in benchmarks:
     add_if_exists(temp, "CPI", r'cpi *(\S+)', contents)
     add_if_exists(temp, "Total L2 Misses", r'system.l2.overallMisses::total *(\S+)', contents)
     add_if_exists(temp, "Total L2 Accesses", r'system.l2.overallAccesses::total *(\S+)', contents)
+    add_if_exists(temp, "Total L2 Fallback replacements", r'system.l2.tags.fallbackReplRefs  *(\S+)', contents)
+    add_if_exists(temp, "Total L2 OPT replacements", r'system.l2.tags.optReplRefs  *(\S+)', contents)
+    add_if_exists(temp, "Total L2 Empty replacements", r'system.l2.tags.emptyReplRefs  *(\S+)', contents)
+    add_if_exists(temp, "Total L2 replacements", r'system.l2.tags.victimReplRefs *(\S+)', contents)
+    add_if_exists(temp, "Total L2 valid replacements", r'system.l2.replacements *(\S+)', contents)
     data[benchmark] = temp
 
 

@@ -5,6 +5,7 @@
 
 #include "mem/cache/tags/shepherd_tags.hh"
 #include "mem/cache/tags/indexing_policies/set_associative.hh"
+#include "mem/cache/tags/indexing_policies/set_associative_generic.hh"
 
 #include <cassert>
 
@@ -25,20 +26,24 @@ ShepherdBlk::print() const
 }
 
 ShepherdTags::ShepherdTags(const ShepherdTagsParams& p)
-    : BaseTags(p), mc_assoc(p.assoc - p.sc_assoc), sc_assoc(p.sc_assoc), num_sets(p.size / (p.entry_size * p.assoc)),
+    : BaseTags(p), mc_assoc(p.assoc - p.sc_assoc), sc_assoc(p.sc_assoc), 
+    num_sets(p.size  / (p.entry_size * p.assoc)),
     blks(p.size / p.block_size),
     _heads(num_sets), _nvc(num_sets, std::vector<unsigned>(p.sc_assoc, 1)), sequentialAccess(p.sequential_access),
-    replacementPolicy(p.replacement_policy)
+    replacementPolicy(p.replacement_policy), sc_stats(*this)
 {
     fatal_if(sc_assoc + 1 > p.assoc, "Shepherd cache associativity too large, MC associativity must be at least one");
     // There must be a indexing policy
     fatal_if(!p.indexing_policy, "An indexing policy is required");
-    fatal_if(dynamic_cast<SetAssociative* const>(p.indexing_policy) == nullptr, "Indexing policy must be set associative");
+    fatal_if((dynamic_cast<SetAssociativeGeneric* const>(p.indexing_policy) == nullptr && dynamic_cast<SetAssociative* const>(p.indexing_policy) == nullptr), "Indexing policy must be set associative");
 
     // Check parameters
     if (blkSize < 4 || !isPowerOf2(blkSize)) {
         fatal("Block size must be at least 4 and a power of 2");
     }
+
+    unsigned num_sets_req = (p.size + p.entry_size * p.assoc - 1) / (p.entry_size * p.assoc);
+    fatal_if(num_sets_req != num_sets, "the total number of cache frames cannot be evenly divided into required ways, modify cache size");
 }
 void ShepherdTags::tagsInit()
 {
@@ -169,6 +174,7 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
     DPRINTF(ShepherdTags, "%s for %#018x\n", __func__, addr);
 
     if (!entries.size()) return nullptr;
+    sc_stats.victimReplRefs++;
 
     //unsigned set = dynamic_cast<SetAssociative*>(indexingPolicy)->extractSet(addr);
     unsigned set = entries[0]->getSet();
@@ -180,6 +186,7 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
         if (!sblk->isSC() && !sblk->isValid())
         {
             DPRINTF(ShepherdTags, "%s victim is invalid MC block [%s]\n", __func__, sblk->print());
+            sc_stats.emptyReplRefs++;
             return sblk;
         }
     }
@@ -191,6 +198,7 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
         if (sblk->isSC() && !sblk->isValid())
         {
             DPRINTF(ShepherdTags, "%s victim is invalid SC block [%s]\n", __func__, sblk->print());
+            sc_stats.emptyReplRefs++;
             return sblk;
         }
     }
@@ -222,6 +230,11 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
     {
         // choose MC blk based on fallback policy (LRU)
         victim = static_cast<CacheBlk*>(replacementPolicy->getVictim(mc_victims));
+        sc_stats.fallbackReplRefs++;
+    }
+    else
+    {
+        sc_stats.optReplRefs++;
     }
 
     evict_blks.push_back(victim);
@@ -234,6 +247,33 @@ CacheBlk* ShepherdTags::findVictim(Addr addr, const bool is_secure,
 };
 
 
+ShepherdTags::ShepherdTagStats::ShepherdTagStats(ShepherdTags &_tags)
+    : statistics::Group(&_tags),
+    tags(_tags),
+    ADD_STAT(fallbackReplRefs, statistics::units::Count::get(),
+             "Total number of times fallback replacement strategies was used to find victim."),
+    ADD_STAT(optReplRefs, statistics::units::Count::get(),
+             "Total number of times there was enough imminence information when finding victim."),
+    ADD_STAT(emptyReplRefs, statistics::units::Count::get(),
+             "Number of times victims was an empty/invalid block (not a conflict misses)."),
+    ADD_STAT(victimReplRefs, statistics::units::Count::get(),
+             "Number of times victims were requested (misses).")
+{
+}
+
+void
+ShepherdTags::ShepherdTagStats::regStats()
+{
+    using namespace statistics;
+
+    statistics::Group::regStats();
+}
+
+void
+ShepherdTags::ShepherdTagStats::preDumpStats()
+{
+    statistics::Group::preDumpStats();
+}
 
 
 } // namespace gem5

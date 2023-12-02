@@ -21,6 +21,7 @@
 #include "mem/cache/tags/base.hh"
 #include "mem/cache/tags/indexing_policies/base.hh"
 #include "mem/packet.hh"
+#include "base/statistics.hh"
 #include "params/ShepherdTags.hh"
 #include "debug/ShepherdTags.hh"
 
@@ -43,6 +44,28 @@ protected:
 
     ShepherdBlk() : CacheBlk(),  _isSC(false), counters()
         {}
+
+    virtual ShepherdBlk&
+    operator=(ShepherdBlk&& other)
+    {
+
+        this->_isSC = other._isSC;
+        this->counters = other.counters;
+        CacheBlk::operator=(std::move(other));
+        return *this;
+    }
+
+    /**
+     * Invalidate the block and clear all state.
+     */
+    virtual void invalidate() override
+    {
+        CacheBlk::invalidate();
+
+        _isSC = false;
+        for (int i = 0; i < counters.size(); ++i)
+            counters[i] = 0;
+    }
 
     void init_counters(unsigned sc_size)
     {
@@ -92,6 +115,27 @@ class ShepherdTags : public BaseTags
 
     /** Replacement policy */
     replacement_policy::Base *replacementPolicy;
+
+    struct ShepherdTagStats : public statistics::Group
+    {
+        ShepherdTagStats(ShepherdTags &tags);
+
+        void regStats() override;
+        void preDumpStats() override;
+
+        ShepherdTags &tags;
+
+        /** Number of times fallback replacement strategies was used to find victim. */
+        statistics::Scalar fallbackReplRefs;
+        /** Number of times there was enough imminence information when finding victim
+         * for the chosen victim to be the same as OPT. */
+        statistics::Scalar optReplRefs;
+        /** Number of times victim was a invalid block (cache was not full, no conflict misses). */
+        statistics::Scalar emptyReplRefs;
+        /** Number of times victims were requested (misses). */
+        statistics::Scalar victimReplRefs;
+
+    } sc_stats;
 
     /* Move cache block data from src to dst. */
     void moveBlockData(ShepherdBlk* src, ShepherdBlk* dst);
