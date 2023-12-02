@@ -63,6 +63,10 @@ def _get_cache_opts(level, options):
     if hasattr(options, assoc_attr):
         opts['assoc'] = getattr(options, assoc_attr)
 
+    sc_assoc_attr = '{}_sc_assoc'.format(level)
+    if hasattr(options, sc_assoc_attr) and getattr(options, sc_assoc_attr):
+        opts['sc_assoc'] = getattr(options, sc_assoc_attr)
+
     prefetcher_attr = '{}_hwp_type'.format(level)
     if hasattr(options, prefetcher_attr):
         opts['prefetcher'] = _get_hwp(getattr(options, prefetcher_attr))

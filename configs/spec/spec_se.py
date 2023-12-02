@@ -125,6 +125,7 @@ Options.addSEOptions(parser)
 
 # add Shepherd cache options
 parser.add_argument("--shepherdcache", action="store_true", help="use Shepherd cache for L2 cache")
+parser.add_argument("--l2_sc_assoc", default="", help="Shepherd cache associativity")
 
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
