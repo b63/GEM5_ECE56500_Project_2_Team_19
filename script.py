@@ -15,7 +15,7 @@ benchmarks = ['perlbench_s', 'gcc_s', 'bwaves_s','mcf_s', 'cactuBSSN_s', 'deepsj
 
 benchmarks_2k17 = ["bwaves_s", "cactuBSSN_s", "lbm_s", "cam4_s", "pop2_s", "imagick_s", "nab_s",
                    "fotonik3d_s", "specrand_fs", "perlbench_s", "gcc_s", "mcf_s", "omnetpp_s",
-                   "xalancbmk_s", "deepsjeng_s", "exchange2_s", "xz_s", "specrand_is",]
+                   "xalancbmk_s", "deepsjeng_s", "exchange2_s", "xz_s", "specrand_is"]
 data = {}
 
 parser = argparse.ArgumentParser(
@@ -41,10 +41,11 @@ if args.s17:
 
 for benchmark in benchmarks:
     print(f"Running {benchmark}...")    
-    proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "configs/spec/spec_se.py", "-b", benchmark, 
-    	   f"--cpu-type={args.cpu_type}", "--maxinsts=5000000", "--l1d_size=16kB", 
-           "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
-           "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
+    proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "--debug-flags=MemoryAddr", "configs/spec/spec_se.py", "-b", benchmark, 
+    	   f"--cpu-type={args.cpu_type}", "--maxinsts=5000000", 
+           "--l1d_size=16kB", "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
+           "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}", 
+           f"> {args.l2_size}_{args.l2_assoc}/{benchmark}_trace.txt"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc.communicate()
 
