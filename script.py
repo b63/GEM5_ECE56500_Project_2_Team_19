@@ -42,10 +42,10 @@ if args.s17:
 
 for benchmark in benchmarks:
     print(f"Running {benchmark}...")    
-    proc = subprocess.Popen(["./build/ECE565-ARM/gem5.opt", "configs/spec/spec_se.py", "-b", benchmark, 
-    	   f"--cpu-type={args.cpu_type}", "--maxinsts=1000000", "--l1d_size=64kB", 
-           "--l1i_size=16kB", "--caches", "--l2cache",
-           f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
+    proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "configs/spec/spec_se.py", "-b", benchmark, 
+    	   f"--cpu-type={args.cpu_type}", "--maxinsts=1000000", "--l1d_size=16kB", 
+           "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
+           "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     proc.communicate()
 
