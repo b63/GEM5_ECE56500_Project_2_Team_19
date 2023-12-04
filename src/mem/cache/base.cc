@@ -48,6 +48,7 @@
 #include "base/compiler.hh"
 #include "base/logging.hh"
 #include "debug/Cache.hh"
+#include "debug/MemoryAddr.hh"
 #include "debug/CacheComp.hh"
 #include "debug/CachePort.hh"
 #include "debug/CacheRepl.hh"
@@ -1234,6 +1235,8 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     gem5_assert(!(isReadOnly && pkt->isWrite()),
                 "Should never see a write in a read-only cache %s\n",
                 name());
+
+    DPRINTF(MemoryAddr, "Cache responding to %#llx \n", pkt->getAddr());
 
     // Access block in the tags
     Cycles tag_latency(0);
