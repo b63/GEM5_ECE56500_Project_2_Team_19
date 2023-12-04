@@ -157,6 +157,13 @@ class Cache(BaseCache):
     cxx_header = 'mem/cache/cache.hh'
     cxx_class = 'gem5::Cache'
 
+class OPTCache(BaseCache):
+    type = 'OPTCache'
+    cxx_header = 'mem/cache/cache.hh'
+    cxx_class = 'gem5::OPTCache'
+    replacement_policy = Param.BaseReplacementPolicy(OPT(),
+        "Replacement policy")
+
 class NoncoherentCache(BaseCache):
     type = 'NoncoherentCache'
     cxx_header = 'mem/cache/noncoherent_cache.hh'
