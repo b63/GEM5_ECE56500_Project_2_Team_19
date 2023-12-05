@@ -39,6 +39,7 @@
 
 from m5.defines import buildEnv
 from m5.objects import *
+from m5.objects.ReplacementPolicies import *
 
 # Base implementations of L1, L2, IO and TLB-walker caches. There are
 # used in the regressions and also as base components in the
@@ -70,6 +71,8 @@ class L2Cache(Cache):
     mshrs = 20
     tgts_per_mshr = 12
     write_buffers = 8
+    replacement_policy = Param.BaseReplacementPolicy(OPT(),
+        "Replacement policy")
 
 class IOCache(Cache):
     assoc = 8

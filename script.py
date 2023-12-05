@@ -43,10 +43,10 @@ if args.s17:
 
 def run_command(args, benchmark, stdout):
     proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "--debug-flags=MemoryAddr", 
-                                 "configs/spec/spec_se.py", "-b", benchmark,  f"--cpu-type={args.cpu_type}", "--maxinsts=5000000", 
-                                 "--l1d_size=16kB", "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
-                                 "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
-                                 stdout=stdout, stderr=subprocess.PIPE)
+                             "configs/spec/spec_se.py", "-b", benchmark,  f"--cpu-type={args.cpu_type}", "--maxinsts=5000000", 
+                             "--l1d_size=16kB", "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
+                             "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
+                             stdout=stdout, stderr=subprocess.PIPE)
     proc.communicate()
 
     if proc.returncode:
