@@ -64,18 +64,19 @@ BaseIndexingPolicy::BaseIndexingPolicy(const Params &p)
       setShift(floorLog2(p.entry_size)), setMask(numSets - 1), sets(numSets),
       tagShift(setShift + floorLog2(numSets))
 {
-    if (dynamic_cast<SetAssociativeGeneric*>(this) == nullptr)
+    bool poweroftwo = (!numSets || !(numSets & (numSets - 1)));
+    if (!poweroftwo)
     {
-        fatal_if(!isPowerOf2(numSets), "# of sets must be non-zero and a power ");
+        // fatal_if(!isPowerOf2(numSets), "# of sets must be non-zero and a power ");
+        warn("numSets is not power of two");
     }
-    else
-    {
-        unsigned num_sets_req = (p.size + p.entry_size * p.assoc - 1) / (p.entry_size * p.assoc);
-        uint64_t req_size = ((uint64_t)num_sets_req) * p.entry_size * p.assoc;
-        DPRINTF(Cache, "%s %u sets required, cache size fits %u; required size %lu\n", __func__,
-                    num_sets_req, numSets, req_size);
-        fatal_if(num_sets_req != numSets, "the total number of cache frames cannot be evenly divided into required ways, modify cache size");
-    }
+
+    unsigned num_sets_req = (p.size + p.entry_size * p.assoc - 1) / (p.entry_size * p.assoc);
+    uint64_t req_size = ((uint64_t)num_sets_req) * p.entry_size * p.assoc;
+    DPRINTF(Cache, "%s %u sets required, cache size fits %u; required size %lu\n", __func__,
+                num_sets_req, numSets, req_size);
+    fatal_if(num_sets_req != numSets, "the total number of cache frames cannot be evenly divided into required ways, modify cache size");
+
     fatal_if(assoc <= 0, "associativity must be greater than zero");
 
     // Make space for the entries
