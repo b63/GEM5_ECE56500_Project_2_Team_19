@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-c', '--cpu_type', default='X86O3CPU')
 parser.add_argument('-b','--benchmark')
+parser.add_argument('-t','--capture_trace',action='store_true', default=False)
 parser.add_argument('-s2', '--l2_size', default='256kB')
 parser.add_argument('-a2', '--l2_assoc', default='4')
 parser.add_argument('-s17', action='store_true', default=False)
@@ -39,19 +40,26 @@ if args.benchmark:
 if args.s17:
     benchmarks = benchmarks_2k17
 
-for benchmark in benchmarks:
-    print(f"Running {benchmark}...")
-    with open(f"{args.l2_size}_{args.l2_assoc}/{benchmark}_trace.txt",'w') as f_obj:
-        proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "--debug-flags=MemoryAddr", 
+
+def run_command(args, benchmark, stdout):
+    proc = subprocess.Popen(["./build/ECE565-X86/gem5.opt", "--debug-flags=MemoryAddr", 
                                  "configs/spec/spec_se.py", "-b", benchmark,  f"--cpu-type={args.cpu_type}", "--maxinsts=5000000", 
                                  "--l1d_size=16kB", "--l1i_size=16kB", "--l1d_assoc=2","--l1i_assoc=2",
                                  "--caches", "--l2cache", f"--l2_size={args.l2_size}", f"--l2_assoc={args.l2_assoc}"],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        proc.communicate()
+                                 stdout=stdout, stderr=subprocess.PIPE)
+    proc.communicate()
 
-        if proc.returncode:
-            print(f"Failed to run {benchmark}")
+    if proc.returncode:
+        print(f"Failed to run {benchmark}")
 
+for benchmark in benchmarks:
+    print(f"Running {benchmark}...")
+    if args.capture_trace:
+        with open(f"{args.l2_size}_{args.l2_assoc}/{benchmark}_trace.txt",'w') as f_obj:
+            run_command(args, benchmark, f_obj)
+    else:
+        run_command(args, benchmark, subprocess.PIPE)
+    
     print("Reading stats from the benchmark...")
     with open('m5out/stats.txt', 'r') as f:
         contents = f.read()
