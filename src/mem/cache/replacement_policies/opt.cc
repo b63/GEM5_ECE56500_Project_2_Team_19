@@ -32,6 +32,7 @@
 #include <memory>
 
 #include "params/OPT.hh"
+#include "base/trace.hh"
 #include "sim/cur_tick.hh"
 
 namespace gem5
