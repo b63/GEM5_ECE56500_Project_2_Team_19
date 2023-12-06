@@ -44,11 +44,13 @@ namespace replacement_policy
 OPT::OPT(const Params &p)
   : Base(p)
 {
+    DPRINTF(ReplacementOPT, "Cache using OPT replacement strategy\n");
 }
 
 void
 OPT::invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
 {
+    DPRINTF(ReplacementOPT, "In invalidate\n");
     // Reset last touch timestamp
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = Tick(0);
@@ -57,6 +59,8 @@ OPT::invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
 void
 OPT::touch(const std::shared_ptr<ReplacementData>& replacement_data) const
 {
+    //DPRINTF(ReplacementOPT, "%d\n",access_counter++);
+    DPRINTF(ReplacementOPT, "In touch\n");
     // Update last touch timestamp
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = curTick();
@@ -66,6 +70,8 @@ void
 OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data) const
 {
     // Set last touch timestamp
+    DPRINTF(ReplacementOPT, "In reset\n");
+
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = curTick();
 }
@@ -75,6 +81,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 {
     // There must be at least one replacement candidate
     assert(candidates.size() > 0);
+    DPRINTF(ReplacementOPT, "In getVictim\n");
 
     // Visit all candidates to find victim
     ReplaceableEntry* victim = candidates[0];
@@ -94,6 +101,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 std::shared_ptr<ReplacementData>
 OPT::instantiateEntry()
 {
+    DPRINTF(ReplacementOPT, "In instantiateEntry\n");
     return std::shared_ptr<ReplacementData>(new OPTReplData());
 }
 
