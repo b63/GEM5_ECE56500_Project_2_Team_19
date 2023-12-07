@@ -30,6 +30,9 @@
 
 #include <cassert>
 #include <memory>
+#include <fstream>
+#include <string>
+#include <filesystem>
 
 #include "params/OPT.hh"
 #include "base/trace.hh"
@@ -46,6 +49,11 @@ OPT::OPT(const Params &p)
   : Base(p)
 {
     DPRINTF(ReplacementOPT, "Cache using OPT replacement strategy\n");
+    std::ifstream curr_bm_file ("current_benchmark.txt");
+    std::string curr_benchmark;
+    getline (curr_bm_file, curr_benchmark);
+    DPRINTF(ReplacementOPT, "%s\n", curr_benchmark);
+    curr_bm_file.close();
 }
 
 void
@@ -60,8 +68,10 @@ OPT::invalidate(const std::shared_ptr<ReplacementData>& replacement_data)
 void
 OPT::touch(const std::shared_ptr<ReplacementData>& replacement_data) const
 {
-    //DPRINTF(ReplacementOPT, "%d\n",access_counter++);
     DPRINTF(ReplacementOPT, "In touch\n");
+    access_counter++;
+    DPRINTF(ReplacementOPT, "Access counter: %d\n",access_counter);
+
     // Update last touch timestamp
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = curTick();
@@ -72,7 +82,8 @@ OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data) const
 {
     // Set last touch timestamp
     DPRINTF(ReplacementOPT, "In reset\n");
-
+    access_counter++;
+    DPRINTF(ReplacementOPT, "Access counter: %d\n",access_counter);
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = curTick();
 }
@@ -102,7 +113,6 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 std::shared_ptr<ReplacementData>
 OPT::instantiateEntry()
 {
-    DPRINTF(ReplacementOPT, "In instantiateEntry\n");
     return std::shared_ptr<ReplacementData>(new OPTReplData());
 }
 

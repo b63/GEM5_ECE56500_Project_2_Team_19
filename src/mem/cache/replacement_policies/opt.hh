@@ -37,6 +37,9 @@
 
 #include "mem/cache/replacement_policies/base.hh"
 
+#include <string>
+#include "debug/ReplacementOPT.hh"
+
 namespace gem5
 {
 
@@ -66,8 +69,7 @@ class OPT : public Base
     OPT(const Params &p);
     ~OPT() = default;
 
-    int access_counter = 0;
-
+    mutable int access_counter;
     /**
      * Invalidate replacement data to set it as the next probable victim.
      * Sets its last touch tick as the starting tick.
