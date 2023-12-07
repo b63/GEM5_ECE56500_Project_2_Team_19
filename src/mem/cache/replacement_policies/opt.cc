@@ -32,7 +32,7 @@
 #include <memory>
 #include <fstream>
 #include <string>
-#include <filesystem>
+#include <vector>
 
 #include "params/OPT.hh"
 #include "base/trace.hh"
@@ -49,11 +49,28 @@ OPT::OPT(const Params &p)
   : Base(p)
 {
     DPRINTF(ReplacementOPT, "Cache using OPT replacement strategy\n");
-    std::ifstream curr_bm_file ("current_benchmark.txt");
-    std::string curr_benchmark;
-    getline (curr_bm_file, curr_benchmark);
-    DPRINTF(ReplacementOPT, "%s\n", curr_benchmark);
-    curr_bm_file.close();
+
+    // Read what is the current benchmark
+    std::ifstream benchmark_config_file ("current_benchmark.txt");
+    std::string trace_loc;
+    getline (benchmark_config_file, trace_loc);
+    DPRINTF(ReplacementOPT, "%s\n", trace_loc);
+    benchmark_config_file.close();
+
+    // Read the actual benchmark trace
+    std::ifstream trace_file (trace_loc);
+    std::string line;
+    for(int i = 0; getline (trace_file, line); i++ ){
+        if(trace.find(line) == trace.end()) {// Not found
+            trace[line].insert(i)
+        }
+        else{ //Found
+            std:vector<int> temp;
+            temp.push_back(i);
+            trace.insert(temp);
+        }
+    }
+    trace_loc.close();
 }
 
 void
