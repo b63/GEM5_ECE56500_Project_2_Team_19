@@ -65,12 +65,16 @@ OPT::OPT(const Params &p)
             trace[line].insert(i)
         }
         else{ //Found
-            std:vector<int> temp;
+            std::vector<int> temp;
             temp.push_back(i);
             trace.insert(temp);
         }
     }
     trace_loc.close();
+
+    // Verify
+    for (const std::pair<const std::string, std::vector<int>>& n : trace)
+        print_key_value(n.first, n.second); 
 }
 
 void
