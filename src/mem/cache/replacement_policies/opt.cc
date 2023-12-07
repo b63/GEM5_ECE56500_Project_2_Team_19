@@ -70,11 +70,14 @@ OPT::OPT(const Params &p)
             trace.insert(temp);
         }
     }
-    trace_loc.close();
+    trace_file.close();
 
     // Verify
-    for (const std::pair<const std::string, std::vector<int>>& n : trace)
-        print_key_value(n.first, n.second); 
+    for (const std::pair<const std::string, std::vector<int>>& n : trace){
+        DPRINTF(ReplacementOPT, "%s \n",n.first); 
+        for(auto & element : n.second)
+            DPRINTF(ReplacementOPT, "%d \n", element); 
+    }
 }
 
 void
