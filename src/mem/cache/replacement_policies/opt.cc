@@ -62,12 +62,12 @@ OPT::OPT(const Params &p)
     std::string line;
     for(int i = 0; getline (trace_file, line); i++ ){
         if(trace.find(line) == trace.end()) {// Not found
-            trace[line].insert(i)
+            trace[line].push_back(i)
         }
         else{ //Found
             std::vector<int> temp;
             temp.push_back(i);
-            trace.insert(temp);
+            trace.insert(std::make_pair<std::string,std::vector<int>>(line, temp));
         }
     }
     trace_file.close();
