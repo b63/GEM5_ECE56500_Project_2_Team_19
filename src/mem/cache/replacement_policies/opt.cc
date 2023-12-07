@@ -61,13 +61,12 @@ OPT::OPT(const Params &p)
     std::ifstream trace_file (trace_loc);
     std::string line;
     for(int i = 0; getline (trace_file, line); i++ ){
-        if(trace.find(line) == trace.end()) {// Not found
-            trace[line].push_back(i)
-        }
-        else{ //Found
+        if(trace.find(line) != trace.end()) // Found
+            trace[line].push_back(i);
+        else{ //Not found
             std::vector<int> temp;
             temp.push_back(i);
-            trace.insert(std::make_pair<std::string,std::vector<int>>(line, temp));
+            trace.insert({line, temp});
         }
     }
     trace_file.close();
@@ -76,7 +75,8 @@ OPT::OPT(const Params &p)
     for (const std::pair<const std::string, std::vector<int>>& n : trace){
         DPRINTF(ReplacementOPT, "%s \n",n.first); 
         for(auto & element : n.second)
-            DPRINTF(ReplacementOPT, "%d \n", element); 
+            DPRINTF(ReplacementOPT, "%d", element); 
+        DPRINTF(ReplacementOPT, "\n"); 
     }
 }
 
