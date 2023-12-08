@@ -143,8 +143,8 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     unsigned int victim_last_access = 0;
     DPRINTF(ReplacementOPT, "Looking at victim with address %s \n", victim_addr_in_hex_str);
 
-    if (trace.find(victim_addr_in_hex_str) != trace.end()){
-        std::vector<int> victim_mem_access = trace.find(victim_addr_in_hex_str)->second;
+    if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
+        std::vector<int> victim_mem_access = search->second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
     }
     else if (strcmp(victim_addr_in_hex_str, "0x0")) // No data stored in this location before
@@ -157,10 +157,10 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
                     candidate->replacementData)->addr;
         std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
-        DPRINTF(ReplacementOPT, "Looking at candidate with address %s \n", candidate_addr_hex_str);
+        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
         unsigned int candidate_last_access = 0;
-        if (trace.find(candidate_addr_hex_str) != trace.end()){
-            std::vector<int> mem_access = trace.find(candidate_addr_hex_str)->second;
+        if(auto search = trace.find(candidate_addr_hex_str); search != trace.end()){
+            std::vector<int> mem_access = search->second;
             candidate_last_access = mem_access[mem_access.size()-1];
         }
         else if (strcmp(candidate_addr_hex_str, "0x0"))
@@ -169,10 +169,8 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             panic("Cannot run OPT with missing trace info.");
 
         // Premuture break out of for loop if block in memory is never used again
-        if (candidate_last_access <= access_counter){
-            victim = candidate;
-            break;
-        }
+        if (candidate_last_access <= access_counter)
+            return victim;
 
         // Normal comparsion. Want max value of last_access
         if (victim_last_access < candidate_last_access) {
