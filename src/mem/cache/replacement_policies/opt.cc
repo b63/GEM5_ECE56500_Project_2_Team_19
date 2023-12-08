@@ -72,12 +72,14 @@ OPT::OPT(const Params &p)
     trace_file.close();
 
     // Verify
+    /*
     for (const std::pair<const std::string, std::vector<int>>& n : trace){
         DPRINTF(ReplacementOPT, "%s \n",n.first); 
         for(auto & element : n.second)
             DPRINTF(ReplacementOPT, "%d", element); 
         DPRINTF(ReplacementOPT, "\n"); 
     }
+    */
 }
 
 void
@@ -102,7 +104,15 @@ OPT::touch(const std::shared_ptr<ReplacementData>& replacement_data) const
 }
 
 void
-OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data) const
+OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data)
+    const
+{
+    panic("Can't run OPT without access information.");
+}
+
+void
+OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data,
+    const PacketPtr pkt)
 {
     // Set last touch timestamp
     DPRINTF(ReplacementOPT, "In reset\n");
@@ -110,6 +120,9 @@ OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data) const
     DPRINTF(ReplacementOPT, "Access counter: %d\n",access_counter);
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->lastTouchTick = curTick();
+
+    std::static_pointer_cast<OPTReplData>(
+        replacement_data)->addr = pkt->getAddr();
 }
 
 ReplaceableEntry*

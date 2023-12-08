@@ -60,11 +60,12 @@ class OPT : public Base
     {
         /** Tick on which the entry was last touched. */
         Tick lastTouchTick;
+        Addr addr;
 
         /**
          * Default constructor. Invalidate data.
          */
-        OPTReplData() : lastTouchTick(0) {}
+        OPTReplData() : lastTouchTick(0), addr(0) {}
     };
 
   public:
@@ -72,7 +73,7 @@ class OPT : public Base
     OPT(const Params &p);
     ~OPT() = default;
 
-    mutable int access_counter;
+    mutable int access_counter = 0;
     std::unordered_map<std::string, std::vector<int>> trace;
     /**
      * Invalidate replacement data to set it as the next probable victim.
@@ -94,12 +95,14 @@ class OPT : public Base
 
     /**
      * Reset replacement data. Used when an entry is inserted.
-     * Sets its last touch tick as the current tick.
      *
      * @param replacement_data Replacement data to be reset.
+     * @param pkt Packet that generated this miss.
      */
+    void reset(const std::shared_ptr<ReplacementData>& replacement_data,
+        const PacketPtr pkt) override;
     void reset(const std::shared_ptr<ReplacementData>& replacement_data) const
-                                                                     override;
+        override;
 
     /**
      * Find replacement victim using OPT timestamps.
