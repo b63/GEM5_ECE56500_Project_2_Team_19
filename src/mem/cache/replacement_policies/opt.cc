@@ -147,7 +147,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         std::vector<int> victim_mem_access = search->second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
     }
-    else if (strcmp(victim_addr_in_hex_str, "0x0")) // No data stored in this location before
+    else if (victim_addr_in_hex_str == "0x0") // No data stored in this location before
         return victim;
     else
         panic("Cannot run OPT with missing trace info.");
@@ -163,7 +163,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             std::vector<int> mem_access = search->second;
             candidate_last_access = mem_access[mem_access.size()-1];
         }
-        else if (strcmp(candidate_addr_hex_str, "0x0"))
+        else if (candidate_addr_hex_str == "0x0")
             return victim;
         else
             panic("Cannot run OPT with missing trace info.");
