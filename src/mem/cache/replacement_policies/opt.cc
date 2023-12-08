@@ -139,8 +139,9 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     ReplaceableEntry* victim = candidates[0];
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
-        std::string hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(
-                    candidate->replacementData)->addr);
+        Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
+                    candidate->replacementData)->addr;
+        std::string hex_str = int_to_hex_str(candidate_addr);
         DPRINTF(ReplacementOPT, "Looking at candidate with address %s \n", hex_str);
         if (std::static_pointer_cast<OPTReplData>(
                     candidate->replacementData)->lastTouchTick <
