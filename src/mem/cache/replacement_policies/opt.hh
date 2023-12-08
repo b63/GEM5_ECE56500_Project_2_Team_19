@@ -90,7 +90,7 @@ class OPT : public Base
      *
      * @param replacement_data Replacement data to be touched.
      */
-    void touch(const std::shared_ptr<ReplacementData>& replacement_data) const
+    void touch(const std::shared_ptr<ReplacementData>& replacement_data)
                                                                      override;
 
     /**
