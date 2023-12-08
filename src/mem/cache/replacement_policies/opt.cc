@@ -33,6 +33,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include "params/OPT.hh"
 #include "base/trace.hh"
@@ -123,6 +124,8 @@ OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data,
 
     std::static_pointer_cast<OPTReplData>(
         replacement_data)->addr = pkt->getAddr();
+
+    //DPRINTF(ReplacementOPT, "Adding addr %#llx to replacement_data\n", std::static_pointer_cast<OPTReplData>(replacement_data)->addr);
 }
 
 ReplaceableEntry*
@@ -136,6 +139,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     ReplaceableEntry* victim = candidates[0];
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
+        DPRINF(ReplacementOPT, "Looking at candidate with address %s \n",int_to_hex_str());
         if (std::static_pointer_cast<OPTReplData>(
                     candidate->replacementData)->lastTouchTick <
                 std::static_pointer_cast<OPTReplData>(
@@ -153,5 +157,13 @@ OPT::instantiateEntry()
     return std::shared_ptr<ReplacementData>(new OPTReplData());
 }
 
+std::string OPT::int_to_hex_str(Addr addr)
+{
+    std::stringstream stream;
+    stream << "0x" << std::hex << addr;
+    return stream.str();
+}
+
 } // namespace replacement_policy
 } // namespace gem5
+

@@ -119,6 +119,8 @@ class OPT : public Base
      * @return A shared pointer to the new replacement data.
      */
     std::shared_ptr<ReplacementData> instantiateEntry() override;
+
+    std::string int_to_hex_str(Addr addr);
 };
 
 } // namespace replacement_policy
