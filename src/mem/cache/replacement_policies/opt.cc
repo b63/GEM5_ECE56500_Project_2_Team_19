@@ -71,8 +71,10 @@ OPT::OPT(const Params &p)
         }
     }
     trace_file.close();
-
+    
     // Verify
+    if(trace.size() == 0)
+        panic("Nothing was loaded. Please check if current_benchmark.txt has the right data.")
     /*
     for (const std::pair<const std::string, std::vector<int>>& n : trace){
         DPRINTF(ReplacementOPT, "%s \n",n.first); 
