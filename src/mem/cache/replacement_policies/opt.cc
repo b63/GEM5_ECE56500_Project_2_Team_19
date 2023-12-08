@@ -129,7 +129,7 @@ OPT::reset(const std::shared_ptr<ReplacementData>& replacement_data,
 }
 
 ReplaceableEntry*
-OPT::getVictim(const ReplacementCandidates& candidates)
+OPT::getVictim(const ReplacementCandidates& candidates) const
 {
     // There must be at least one replacement candidate
     assert(candidates.size() > 0);
@@ -140,7 +140,7 @@ OPT::getVictim(const ReplacementCandidates& candidates)
     std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     unsigned int victim_last_access;
     if (trace.find(victim_addr_in_hex_str) != trace.end()){
-        std::vector<int> victim_mem_access = trace[victim_addr_in_hex_str];
+        std::vector<int> victim_mem_access = trace.find(victim_addr_in_hex_str).second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
     }
     else
@@ -154,7 +154,7 @@ OPT::getVictim(const ReplacementCandidates& candidates)
         DPRINTF(ReplacementOPT, "Looking at candidate with address %s \n", candidate_addr_hex_str);
         unsigned int candidate_last_access;
         if (trace.find(candidate_addr_hex_str) != trace.end()){
-            std::vector<int> mem_access = trace[candidate_addr_hex_str];
+            std::vector<int> mem_access = trace.find(candidate_addr_hex_str).second;
             candidate_last_access = mem_access[mem_access.size()-1];
         }
         else
