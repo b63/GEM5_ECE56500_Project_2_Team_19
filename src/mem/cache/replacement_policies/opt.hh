@@ -120,7 +120,7 @@ class OPT : public Base
      */
     std::shared_ptr<ReplacementData> instantiateEntry() override;
 
-    std::string int_to_hex_str(Addr addr);
+    std::string int_to_hex_str(Addr addr) const;
 };
 
 } // namespace replacement_policy
