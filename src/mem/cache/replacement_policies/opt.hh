@@ -68,13 +68,26 @@ class OPT : public Base
         OPTReplData() : lastTouchTick(0), addr(0) {}
     };
 
+    struct OPTStats : public statistics::Group
+    {
+        OPTStats(OPT &policy);
+
+        void regStats() override;
+        void preDumpStats() override;
+
+        OPT &policy;
+
+        /** Number of times fallback replacement strategies was used to find victim. */
+        statistics::Scalar speculativeVictim;
+    } opt_stats;
+
   public:
     typedef OPTParams Params;
     OPT(const Params &p);
     ~OPT() = default;
 
-    mutable int access_counter = 0;
-    std::unordered_map<std::string, std::vector<int>> trace;
+    mutable unsigned access_counter = 0;
+    std::unordered_map<std::string, std::vector<unsigned>> trace;
     /**
      * Invalidate replacement data to set it as the next probable victim.
      * Sets its last touch tick as the starting tick.

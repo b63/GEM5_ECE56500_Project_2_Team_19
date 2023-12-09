@@ -47,7 +47,7 @@ namespace replacement_policy
 {
 
 OPT::OPT(const Params &p)
-  : Base(p)
+  : Base(p), opt_stats(*this)
 {
     DPRINTF(ReplacementOPT, "Cache using OPT replacement strategy\n");
 
@@ -65,7 +65,7 @@ OPT::OPT(const Params &p)
         if(trace.find(line) != trace.end()) // Found
             trace[line].push_back(i);
         else{ //Not found
-            std::vector<int> temp;
+            std::vector<unsigned> temp;
             temp.push_back(i);
             trace.insert({line, temp});
         }
@@ -144,7 +144,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
     
     if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
-        std::vector<int> victim_mem_access = search->second;
+        std::vector<unsigned> victim_mem_access = search->second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
     }
     else if (victim_addr_in_hex_str == "0x0") // No data stored in this location before
@@ -160,14 +160,15 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
         unsigned int candidate_last_access = 0;
         if(auto search = trace.find(candidate_addr_hex_str); search != trace.end()){
-            std::vector<int> mem_access = search->second;
+            std::vector<unsigned> mem_access = search->second;
             candidate_last_access = mem_access[mem_access.size()-1];
         }
         else if (candidate_addr_hex_str == "0x0")
             return victim;
-        else
-            panic("Cannot run OPT with missing trace info.");
-
+        else{
+            opt_stats.speculativeVictim++;
+            return victim;
+        }
         // Premuture break out of for loop if block in memory is never used again
         if (candidate_last_access <= access_counter)
             return victim;
@@ -193,6 +194,26 @@ std::string OPT::int_to_hex_str(Addr addr) const
     std::stringstream stream;
     stream << "0x" << std::hex << addr;
     return stream.str();
+}
+
+OPT::OPTStats::OPTStats(OPT &_policy)
+    : statistics::Group(&_policy),
+    policy(_policy),
+    ADD_STAT(speculativeVictim, statistics::units::Count::get(),
+             "Speculatively evict block in cachce."),
+{
+}
+
+OPT::OPTStats::regStats()
+{
+    using namespace statistics;
+    statistics::Group::regStats();
+}
+
+void
+OPT::OPTStats::preDumpStats()
+{
+    statistics::Group::preDumpStats();
 }
 
 } // namespace replacement_policy
