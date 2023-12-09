@@ -193,7 +193,7 @@ ReplaceableEntry*
 OPT::findEarliestUsed(const ReplacementCandidates& candidates) const
 {
     // Visit all candidates to find victim
-    ReplaceableEntry* victim = candidates[0];
+    ReplaceableEntry* victim = NULL;
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
         if (std::static_pointer_cast<OPTReplData>(
