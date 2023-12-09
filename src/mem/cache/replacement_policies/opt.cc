@@ -163,6 +163,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         else if (candidate_addr_hex_str == "0x0")
             return victim;
         else{
+            DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
             speculative_victim = candidate;
             continue;
         }
@@ -174,8 +175,10 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         }
     }
 
-    if (speculative_victim == victim){
+    if (speculative_victim){
         const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set %llx as victim.\n", 
+                std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
         victim = speculative_victim;
     }
 
