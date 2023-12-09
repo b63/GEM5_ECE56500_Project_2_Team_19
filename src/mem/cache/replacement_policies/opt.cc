@@ -153,10 +153,18 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             // If LRU victim access is in the last 20 access, go with FU
             if(victim_last_access > curr_counter)
                 victim = NULL;
+            else
+                const_cast<OPT*>(this)->opt_stats.LRUVictims++;
+
         }
-        if(victim != NULL)
+
+        if(victim == NULL){
             victim = findFurthestUse(candidates); // OPT
+            const_cast<OPT*>(this)->opt_stats.OPTVictims++;
+        }
     }
+    else
+        const_cast<OPT*>(this)->opt_stats.emptyVictims++;
 
     return victim;
 }
@@ -266,8 +274,12 @@ OPT::OPTStats::OPTStats(OPT &_policy)
     policy(_policy),
     ADD_STAT(speculativeVictims, statistics::units::Count::get(),
              "Speculatively evict block in cache."),
-    ADD_STAT(notUsedAgainVictims, statistics::units::Count::get(),
-             "Blocks that will not be used again.")
+    ADD_STAT(emptyVictims, statistics::units::Count::get(),
+             "Blocks that are evicted by cause its empty."),
+    ADD_STAT(LRUVictims, statistics::units::Count::get(),
+             "Blocks that are evicted by LRU."),
+    ADD_STAT(OPTVictims, statistics::units::Count::get(),
+             "Blocks that are evicted by OPT.")
 {
 }
 
