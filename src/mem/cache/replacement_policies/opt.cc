@@ -212,7 +212,7 @@ OPT::OPTStats::OPTStats(OPT &_policy)
     : statistics::Group(&_policy),
     policy(_policy),
     ADD_STAT(speculativeVictims, statistics::units::Count::get(),
-             "Speculatively evict block in cache.")
+             "Speculatively evict block in cache."),
     ADD_STAT(notUsedAgainVictims, statistics::units::Count::get(),
              "Blocks that will not be used again.")
 {
