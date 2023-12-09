@@ -142,8 +142,67 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 
     // Find victim if set is full
     if(victim != NULL){
-        // Visit all candidates to find victim
-        victim = candidates[0];
+        // Prioritize LRU 
+        ReplaceableEntry* victim = findEarliestUsed(candidates); // LRU
+        std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
+
+        if(auto search = trace.find(victim); search != trace.end()){
+            std::vector<unsigned> victim_mem_access = search->second;
+            unsigned victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+            unsigned curr_counter = access_counter-20 > 0 ? access_counter-20 : 0;
+            // If LRU victim access is in the last 20 access, go with FU
+            if(victim_last_access > curr_counter)
+                victim = NULL;
+        }
+        if(victim != NULL)
+            victim = findFurthestUse(candidates); // OPT
+    }
+
+    return victim;
+}
+
+ReplaceableEntry*
+OPT::findEmptySpace(const ReplacementCandidates& candidates) const
+{
+    // Visit all candidates to find victim
+    ReplaceableEntry* victim = NULL;
+
+    for (const auto& candidate : candidates) {
+        // Update victim entry if necessary
+        Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
+                    candidate->replacementData)->addr;
+        std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
+        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
+        if (candidate_addr_hex_str == "0x0"){
+            victim = candidate;
+            break;
+        }
+    }
+    return victim;
+}
+
+ReplaceableEntry*
+OPT::findEarliestUsed(const ReplacementCandidates& candidates) const
+{
+    // Visit all candidates to find victim
+    ReplaceableEntry* victim = candidates[0];
+    for (const auto& candidate : candidates) {
+        // Update victim entry if necessary
+        if (std::static_pointer_cast<OPTReplData>(
+                    candidate->replacementData)->lastTouchTick <
+                std::static_pointer_cast<OPTReplData>(
+                    victim->replacementData)->lastTouchTick) {
+            victim = candidate;
+        }
+    }
+    return victim;
+}
+
+ReplaceableEntry*
+OPT::findFurthestUse(const ReplacementCandidates& candidates) const
+{
+    // Visit all candidates to find victim
+        ReplaceableEntry* victim = candidates[0];
         std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
         unsigned int victim_last_access = 0;
         DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
@@ -173,15 +232,6 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
                 continue;
             }
 
-            // Premuture break out of for loop if block in memory is never used again
-            int temp_counter = access_counter-50;
-            if (temp_counter < 0) temp_counter = 0;
-            if (candidate_last_access <= temp_counter){
-                const_cast<OPT*>(this)->opt_stats.notUsedAgainVictims++;
-                victim = candidate;
-                break;
-            }
-
             // Want max value of last_access
             if (victim_last_access < candidate_last_access) {
                 victim = candidate;
@@ -201,25 +251,6 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     return victim;
 }
 
-ReplaceableEntry*
-OPT::findEmptySpace(const ReplacementCandidates& candidates) const
-{
-    // Visit all candidates to find victim
-    ReplaceableEntry* victim = NULL;
-
-    for (const auto& candidate : candidates) {
-        // Update victim entry if necessary
-        Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
-                    candidate->replacementData)->addr;
-        std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
-        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
-        if (candidate_addr_hex_str == "0x0"){
-            victim = candidate;
-            break;
-        }
-    }
-    return victim;
-}
 
 std::shared_ptr<ReplacementData>
 OPT::instantiateEntry()

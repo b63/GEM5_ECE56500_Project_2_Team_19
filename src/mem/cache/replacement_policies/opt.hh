@@ -139,7 +139,10 @@ class OPT : public Base
 
     std::string int_to_hex_str(Addr addr) const;
 
-    ReplaceableEntry* findEmptySpace(const ReplacementCandidates& candidates);
+    ReplaceableEntry* findEmptySpace(const ReplacementCandidates& candidates) const;
+    ReplaceableEntry* findEarliestUsed(const ReplacementCandidates& candidates) const;
+    ReplaceableEntry* findFurthestUse(const ReplacementCandidates& candidates) const;
+
 };
 
 } // namespace replacement_policy
