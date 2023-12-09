@@ -153,18 +153,23 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             // If LRU victim access is in the last 20 access, go with FU
             if(victim_last_access > curr_counter)
                 victim = NULL;
-            else
+            else{
                 const_cast<OPT*>(this)->opt_stats.LRUVictims++;
-
+                DPRINTF(ReplacementOPT, "Using LRU victim\n");
+            }
         }
 
         if(victim == NULL){
             victim = findFurthestUse(candidates); // OPT
             const_cast<OPT*>(this)->opt_stats.OPTVictims++;
+            DPRINTF(ReplacementOPT, "Using OPT victim\n");
         }
     }
     else
         const_cast<OPT*>(this)->opt_stats.emptyVictims++;
+
+    DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
+                            std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
 
     return victim;
 }
@@ -249,8 +254,6 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
                 std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
         victim = speculative_victim;
     }
-    DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
-                            std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     return victim;
 }
 
