@@ -80,6 +80,9 @@ class OPT : public Base
 
         /** Number of times fallback replacement strategies was used to find victim. */
         statistics::Scalar speculativeVictims;
+
+        /** Number of times not used again blocks was the victim. */
+        statistics::Scalar notUsedAgainVictims;
     } opt_stats;
 
   public:

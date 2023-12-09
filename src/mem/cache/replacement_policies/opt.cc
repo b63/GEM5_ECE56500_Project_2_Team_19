@@ -160,13 +160,21 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             std::vector<unsigned> mem_access = search->second;
             candidate_last_access = mem_access[mem_access.size()-1];
         }
-        else if (candidate_addr_hex_str == "0x0")
-            DPRINTF(ReplacementOPT, "Evicting block with address %s\n", candidate_addr_hex_str);
-            return candidate;
+        else if (candidate_addr_hex_str == "0x0"){
+            victim = candidate;
+            break;
+        }
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
             speculative_victim = candidate;
             continue;
+        }
+
+        // Premuture break out of for loop if block in memory is never used again
+        if (candidate_last_access <= access_counter){
+            const_cast<OPT*>(this)->opt_stats.notUsedAgainVictims++;
+            victim = candidate;
+            break;
         }
 
         // Normal comparsion. Want max value of last_access
@@ -205,6 +213,8 @@ OPT::OPTStats::OPTStats(OPT &_policy)
     policy(_policy),
     ADD_STAT(speculativeVictims, statistics::units::Count::get(),
              "Speculatively evict block in cache.")
+    ADD_STAT(notUsedAgainVictims, statistics::units::Count::get(),
+             "Blocks that will not be used again.")
 {
 }
 
