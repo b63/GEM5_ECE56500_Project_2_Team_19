@@ -142,6 +142,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     unsigned int victim_last_access = 0;
     DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
+    ReplaceableEntry* speculative_victim;
     
     if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
         std::vector<unsigned> victim_mem_access = search->second;
@@ -149,10 +150,8 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     }
     else if (victim_addr_in_hex_str == "0x0") // No data stored in this location before
         return victim;
-    else{
-        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-        return victim;
-    }
+    else
+        speculative_victim = victim;
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
@@ -168,8 +167,8 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         else if (candidate_addr_hex_str == "0x0")
             return victim;
         else{
-            const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-            return victim;
+            speculative_victim = candidate;
+            continue;
         }
         // Premuture break out of for loop if block in memory is never used again
         if (candidate_last_access <= access_counter)
@@ -180,6 +179,11 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             victim = candidate;
             victim_last_access = candidate_last_access;
         }
+    }
+
+    if ((speculative_victim != victim) && speculative_victim){
+        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+        victim = speculative_victim;
     }
 
     return victim;
