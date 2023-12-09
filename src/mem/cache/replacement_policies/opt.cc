@@ -166,7 +166,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         else if (candidate_addr_hex_str == "0x0")
             return victim;
         else{
-            opt_stats.speculativeVictim++;
+            const_cast<OPT*>(this)->opt_stat.speculativeVictims++;
             return victim;
         }
         // Premuture break out of for loop if block in memory is never used again
@@ -199,11 +199,12 @@ std::string OPT::int_to_hex_str(Addr addr) const
 OPT::OPTStats::OPTStats(OPT &_policy)
     : statistics::Group(&_policy),
     policy(_policy),
-    ADD_STAT(speculativeVictim, statistics::units::Count::get(),
-             "Speculatively evict block in cachce."),
+    ADD_STAT(speculativeVictims, statistics::units::Count::get(),
+             "Speculatively evict block in cache.")
 {
 }
 
+void
 OPT::OPTStats::regStats()
 {
     using namespace statistics;

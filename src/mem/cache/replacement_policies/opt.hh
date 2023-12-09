@@ -78,7 +78,7 @@ class OPT : public Base
         OPT &policy;
 
         /** Number of times fallback replacement strategies was used to find victim. */
-        statistics::Scalar speculativeVictim;
+        statistics::Scalar speculativeVictims;
     } opt_stats;
 
   public:
