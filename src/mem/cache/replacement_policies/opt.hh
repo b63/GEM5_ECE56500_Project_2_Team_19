@@ -42,6 +42,7 @@
 #include <unordered_map>
 
 #include "debug/ReplacementOPT.hh"
+#include "base/statistics.hh"
 
 namespace gem5
 {

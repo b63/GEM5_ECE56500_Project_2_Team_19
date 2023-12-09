@@ -166,7 +166,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         else if (candidate_addr_hex_str == "0x0")
             return victim;
         else{
-            const_cast<OPT*>(this)->opt_stat.speculativeVictims++;
+            const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
             return victim;
         }
         // Premuture break out of for loop if block in memory is never used again
