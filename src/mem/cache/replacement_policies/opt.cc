@@ -137,17 +137,75 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     assert(candidates.size() > 0);
     DPRINTF(ReplacementOPT, "In getVictim\n");
 
-    // Visit all candidates to find victim
-    ReplaceableEntry* victim = candidates[0];
-    std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
-    unsigned int victim_last_access = 0;
-    DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
-    ReplaceableEntry* speculative_victim = NULL;
-    
-    if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
-        std::vector<unsigned> victim_mem_access = search->second;
-        victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+    // Find empty space first
+    ReplaceableEntry* victim = findEmptySpace(candidates);
+
+    // Find victim if set is full
+    if(victim != NULL){
+        // Visit all candidates to find victim
+        victim = candidates[0];
+        std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
+        unsigned int victim_last_access = 0;
+        DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
+        ReplaceableEntry* speculative_victim = NULL;
+        
+        if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
+            std::vector<unsigned> victim_mem_access = search->second;
+            victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+        }
+
+        for (const auto& candidate : candidates) {
+            // Update victim entry if necessary
+            Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
+                        candidate->replacementData)->addr;
+            std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
+            DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
+            unsigned int candidate_last_access = 0;
+
+            // Find trace data
+            if(auto search = trace.find(candidate_addr_hex_str); search != trace.end()){
+                std::vector<unsigned> mem_access = search->second;
+                candidate_last_access = mem_access[mem_access.size()-1];
+            }
+            else{
+                DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
+                speculative_victim = candidate;
+                continue;
+            }
+
+            // Premuture break out of for loop if block in memory is never used again
+            int temp_counter = access_counter-50;
+            if (temp_counter < 0) temp_counter = 0;
+            if (candidate_last_access <= temp_counter){
+                const_cast<OPT*>(this)->opt_stats.notUsedAgainVictims++;
+                victim = candidate;
+                break;
+            }
+
+            // Want max value of last_access
+            if (victim_last_access < candidate_last_access) {
+                victim = candidate;
+                victim_last_access = candidate_last_access;
+            }
+        }
+
+        if (speculative_victim){
+            const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+            DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
+                    std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
+            victim = speculative_victim;
+        }
     }
+    DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
+                            std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
+    return victim;
+}
+
+ReplaceableEntry*
+OPT::findEmptySpace(const ReplacementCandidates& candidates) const
+{
+    // Visit all candidates to find victim
+    ReplaceableEntry* victim = NULL;
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
@@ -155,43 +213,11 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
                     candidate->replacementData)->addr;
         std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
         DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
-        unsigned int candidate_last_access = 0;
-        if(auto search = trace.find(candidate_addr_hex_str); search != trace.end()){
-            std::vector<unsigned> mem_access = search->second;
-            candidate_last_access = mem_access[mem_access.size()-1];
-        }
-        else if (candidate_addr_hex_str == "0x0"){
+        if (candidate_addr_hex_str == "0x0"){
             victim = candidate;
             break;
         }
-        else{
-            DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
-            speculative_victim = candidate;
-            continue;
-        }
-
-        // Premuture break out of for loop if block in memory is never used again
-        if (candidate_last_access <= access_counter){
-            const_cast<OPT*>(this)->opt_stats.notUsedAgainVictims++;
-            victim = candidate;
-            break;
-        }
-
-        // Normal comparsion. Want max value of last_access
-        if (victim_last_access < candidate_last_access) {
-            victim = candidate;
-            victim_last_access = candidate_last_access;
-        }
     }
-
-    if (speculative_victim){
-        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
-                std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
-        victim = speculative_victim;
-    }
-    DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
-                            std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     return victim;
 }
 

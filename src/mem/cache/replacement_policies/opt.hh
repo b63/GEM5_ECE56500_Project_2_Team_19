@@ -138,6 +138,8 @@ class OPT : public Base
     std::shared_ptr<ReplacementData> instantiateEntry() override;
 
     std::string int_to_hex_str(Addr addr) const;
+
+    ReplaceableEntry* findEmptySpace(const ReplacementCandidates& candidates);
 };
 
 } // namespace replacement_policy
