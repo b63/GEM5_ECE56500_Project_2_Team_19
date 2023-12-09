@@ -142,28 +142,9 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 
     // Find victim if set is full
     if(victim == NULL){
-        // Prioritize LRU 
-        victim = findEarliestUsed(candidates); // LRU
-        std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
-
-        if(auto search = trace.find(victim_addr); search != trace.end()){
-            std::vector<unsigned> victim_mem_access = search->second;
-            unsigned victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
-            unsigned curr_counter = access_counter-20 > 0 ? access_counter-20 : 0;
-            // If LRU victim access is in the last 20 access, go with FU
-            if(victim_last_access > curr_counter)
-                victim = NULL;
-            else{
-                const_cast<OPT*>(this)->opt_stats.LRUVictims++;
-                DPRINTF(ReplacementOPT, "Using LRU victim\n");
-            }
-        }
-
-        if(victim == NULL){
-            victim = findFurthestUse(candidates); // OPT
-            const_cast<OPT*>(this)->opt_stats.OPTVictims++;
-            DPRINTF(ReplacementOPT, "Using OPT victim\n");
-        }
+        victim = findFurthestUse(candidates); // OPT
+        const_cast<OPT*>(this)->opt_stats.OPTVictims++;
+        DPRINTF(ReplacementOPT, "Using OPT victim\n");
     }
     else
         const_cast<OPT*>(this)->opt_stats.emptyVictims++;
@@ -241,6 +222,13 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
             continue;
         }
 
+        unsigned curr_counter = access_counter-16 > 0 ? access_counter-16 : 0;
+        // If victim last access is not within the last 16 access, we can safe evict it
+        if(victim_last_access < curr_counter){
+            victim = candidate;
+            break;  
+        }
+        
         // Want max value of last_access
         if (victim_last_access < candidate_last_access) {
             victim = candidate;
