@@ -177,11 +177,9 @@ OPT::findEmptySpace(const ReplacementCandidates& candidates) const
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
-        Addr candidate_addr = std::static_pointer_cast<OPTReplData>(
-                    candidate->replacementData)->addr;
-        std::string candidate_addr_hex_str = int_to_hex_str(candidate_addr);
-        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr_hex_str);
-        if (candidate_addr_hex_str == "0x0"){
+        std::string candidate_addr= int_to_hex_str(std::static_pointer_cast<OPTReplData>(candidate->replacementData)->addr);
+        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
+        if (candidate_addr == "0x0"){
             victim = candidate;
             break;
         }
@@ -193,7 +191,7 @@ ReplaceableEntry*
 OPT::findEarliestUsed(const ReplacementCandidates& candidates) const
 {
     // Visit all candidates to find victim
-    ReplaceableEntry* victim = NULL;
+    ReplaceableEntry* victim = candidates[0];;
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
         if (std::static_pointer_cast<OPTReplData>(
