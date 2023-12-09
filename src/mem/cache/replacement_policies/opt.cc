@@ -161,6 +161,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             candidate_last_access = mem_access[mem_access.size()-1];
         }
         else if (candidate_addr_hex_str == "0x0")
+            DPRINTF(ReplacementOPT, "Evicting block with address %s\n", candidate_addr_hex_str);
             return candidate;
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
@@ -177,11 +178,12 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
 
     if (speculative_victim){
         const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set %llx as victim.\n", 
+        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
                 std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
         victim = speculative_victim;
     }
-
+    DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
+                            std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     return victim;
 }
 
