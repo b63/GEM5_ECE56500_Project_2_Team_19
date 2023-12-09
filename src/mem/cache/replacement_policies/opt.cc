@@ -170,9 +170,6 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             speculative_victim = candidate;
             continue;
         }
-        // Premuture break out of for loop if block in memory is never used again
-        if (candidate_last_access <= access_counter)
-            return victim;
 
         // Normal comparsion. Want max value of last_access
         if (victim_last_access < candidate_last_access) {
