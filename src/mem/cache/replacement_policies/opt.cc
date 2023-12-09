@@ -202,53 +202,51 @@ ReplaceableEntry*
 OPT::findFurthestUse(const ReplacementCandidates& candidates) const
 {
     // Visit all candidates to find victim
-        ReplaceableEntry* victim = candidates[0];
-        std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
-        unsigned int victim_last_access = 0;
-        DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr);
-        ReplaceableEntry* speculative_victim = NULL;
-        
-        if(auto search = trace.find(victim_addr); search != trace.end()){
-            std::vector<unsigned> victim_mem_access = search->second;
-            victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+    ReplaceableEntry* victim = candidates[0];
+    std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
+    unsigned int victim_last_access = 0;
+    DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr);
+    ReplaceableEntry* speculative_victim = NULL;
+    
+    if(auto search = trace.find(victim_addr); search != trace.end()){
+        std::vector<unsigned> victim_mem_access = search->second;
+        victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+    }
+
+    for (const auto& candidate : candidates) {
+        // Update victim entry if necessary
+        std::string candidate_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(candidate->replacementData)->addr);
+        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
+        unsigned int candidate_last_access = 0;
+
+        // Find trace data
+        if(auto search = trace.find(candidate_addr); search != trace.end()){
+            std::vector<unsigned> mem_access = search->second;
+            candidate_last_access = mem_access[mem_access.size()-1];
+        }
+        else{
+            DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr);
+            speculative_victim = candidate;
+            continue;
         }
 
-        for (const auto& candidate : candidates) {
-            // Update victim entry if necessary
-            std::string candidate_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(candidate->replacementData)->addr);
-            DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
-            unsigned int candidate_last_access = 0;
-
-            // Find trace data
-            if(auto search = trace.find(candidate_addr); search != trace.end()){
-                std::vector<unsigned> mem_access = search->second;
-                candidate_last_access = mem_access[mem_access.size()-1];
-            }
-            else{
-                DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr);
-                speculative_victim = candidate;
-                continue;
-            }
-
-            // Want max value of last_access
-            if (victim_last_access < candidate_last_access) {
-                victim = candidate;
-                victim_last_access = candidate_last_access;
-            }
+        // Want max value of last_access
+        if (victim_last_access < candidate_last_access) {
+            victim = candidate;
+            victim_last_access = candidate_last_access;
         }
+    }
 
-        if (speculative_victim){
-            const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-            DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
-                    std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
-            victim = speculative_victim;
-        }
+    if (speculative_victim){
+        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
+                std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
+        victim = speculative_victim;
     }
     DPRINTF(ReplacementOPT, "Evicting block with address 0x%llx\n",
                             std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     return victim;
 }
-
 
 std::shared_ptr<ReplacementData>
 OPT::instantiateEntry()
