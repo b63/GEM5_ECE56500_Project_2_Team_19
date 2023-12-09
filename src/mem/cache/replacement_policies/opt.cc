@@ -149,8 +149,10 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     }
     else if (victim_addr_in_hex_str == "0x0") // No data stored in this location before
         return victim;
-    else
-        panic("Cannot run OPT with missing trace info.");
+    else{
+        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+        return victim;
+    }
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
