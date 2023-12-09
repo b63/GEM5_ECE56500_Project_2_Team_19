@@ -143,7 +143,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     // Find victim if set is full
     if(victim == NULL){
         // Prioritize LRU 
-        ReplaceableEntry* victim = findEarliestUsed(candidates); // LRU
+        victim = findEarliestUsed(candidates); // LRU
         std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
 
         if(auto search = trace.find(victim_addr); search != trace.end()){
