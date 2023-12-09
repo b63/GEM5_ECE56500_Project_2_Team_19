@@ -148,10 +148,6 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         std::vector<unsigned> victim_mem_access = search->second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
     }
-    else if (victim_addr_in_hex_str == "0x0") // No data stored in this location before
-        return victim;
-    else
-        speculative_victim = victim;
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
@@ -178,7 +174,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
         }
     }
 
-    if ((speculative_victim != victim) && speculative_victim){
+    if (speculative_victim == victim){
         const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
         victim = speculative_victim;
     }
