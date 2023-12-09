@@ -161,7 +161,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
             candidate_last_access = mem_access[mem_access.size()-1];
         }
         else if (candidate_addr_hex_str == "0x0")
-            return victim;
+            return candidate;
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr_hex_str);
             speculative_victim = candidate;
