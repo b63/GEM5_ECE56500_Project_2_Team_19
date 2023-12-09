@@ -136,6 +136,7 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     // There must be at least one replacement candidate
     assert(candidates.size() > 0);
     DPRINTF(ReplacementOPT, "In getVictim\n");
+    DPRINTF(ReplacementOPT, "Access counter: %d\n",access_counter);
 
     // Find empty space first
     ReplaceableEntry* victim = findEmptySpace(candidates);
@@ -164,7 +165,7 @@ OPT::findEmptySpace(const ReplacementCandidates& candidates) const
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
         std::string candidate_addr= int_to_hex_str(std::static_pointer_cast<OPTReplData>(candidate->replacementData)->addr);
-        DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
+        //DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
         if (candidate_addr == "0x0"){
             victim = candidate;
             break;
@@ -196,25 +197,39 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
     // Visit all candidates to find victim
     ReplaceableEntry* victim = candidates[0];
     std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
-    unsigned int victim_last_access = 0;
+    unsigned victim_next_access = std::numeric_limits<unsigned>::max();
     DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr);
     ReplaceableEntry* speculative_victim = NULL;
-    
+
+   //unsigned curr_counter = access_counter-16 > 0 ? access_counter-16 : 0;
+    unsigned curr_counter = access_counter;
+
     if(auto search = trace.find(victim_addr); search != trace.end()){
         std::vector<unsigned> victim_mem_access = search->second;
-        victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
+        for(int i=0; i < victim_mem_access.size(); i++){
+            if(victim_mem_access[i]>curr_counter){
+                victim_next_access = victim_mem_access[i];
+                break;
+            }
+        }
     }
 
     for (const auto& candidate : candidates) {
         // Update victim entry if necessary
         std::string candidate_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(candidate->replacementData)->addr);
         DPRINTF(ReplacementOPT, "Looking at candidate with address %s\n", candidate_addr);
-        unsigned int candidate_last_access = 0;
+        unsigned candidate_next_access = std::numeric_limits<unsigned>::max();
 
         // Find trace data
         if(auto search = trace.find(candidate_addr); search != trace.end()){
             std::vector<unsigned> mem_access = search->second;
-            candidate_last_access = mem_access[mem_access.size()-1];
+            unsigned candidate_next_access = std::numeric_limits<unsigned>::max();
+            for(int i=0; i < mem_access.size(); i++){
+                if(mem_access[i]>curr_counter){
+                    candidate_next_access = mem_access[i];
+                    break;
+                }
+            }
         }
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr);
@@ -222,17 +237,10 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
             continue;
         }
 
-        unsigned curr_counter = access_counter-16 > 0 ? access_counter-16 : 0;
-        // If victim last access is not within the last 16 access, we can safe evict it
-        if(victim_last_access < curr_counter){
-            victim = candidate;
-            break;  
-        }
-        
         // Want max value of last_access
-        if (victim_last_access < candidate_last_access) {
+        if (victim_next_access < candidate_next_access) {
             victim = candidate;
-            victim_last_access = candidate_last_access;
+            victim_next_access = candidate_next_access;
         }
     }
 
