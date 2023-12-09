@@ -209,6 +209,7 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
         for(int i=0; i < victim_mem_access.size(); i++){
             if(victim_mem_access[i]>curr_counter){
                 victim_next_access = victim_mem_access[i];
+                DPRINTF(ReplacementOPT, "victim_next_access[i]>curr_counter; %d(victim) vs %d(curr_counter)\n", victim_next_access, curr_counter);
                 break;
             }
         }
@@ -227,20 +228,22 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
             for(int i=0; i < mem_access.size(); i++){
                 if(mem_access[i]>curr_counter){
                     candidate_next_access = mem_access[i];
+                    DPRINTF(ReplacementOPT, "mem_access[i]>curr_counter; %d(candidate) vs %d(curr_counter)\n", candidate_next_access, curr_counter);
                     break;
                 }
+            }
+
+            // Want max value of last_access
+            if (victim_next_access < candidate_next_access) {
+                DPRINTF(ReplacementOPT, "Update tracking victim; %d(victim) vs %d(candidate)\n", victim_next_access, candidate_next_access);
+                victim = candidate;
+                victim_next_access = candidate_next_access;
             }
         }
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr);
             speculative_victim = candidate;
             continue;
-        }
-
-        // Want max value of last_access
-        if (victim_next_access < candidate_next_access) {
-            victim = candidate;
-            victim_next_access = candidate_next_access;
         }
     }
 
