@@ -141,8 +141,8 @@ OPT::getVictim(const ReplacementCandidates& candidates) const
     ReplaceableEntry* victim = candidates[0];
     std::string victim_addr_in_hex_str = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     unsigned int victim_last_access = 0;
-    DPRINTF(ReplacementOPT, "Looking at victim with address %s \n", victim_addr_in_hex_str);
-
+    DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr_in_hex_str);
+    
     if(auto search = trace.find(victim_addr_in_hex_str); search != trace.end()){
         std::vector<int> victim_mem_access = search->second;
         victim_last_access = victim_mem_access[victim_mem_access.size()-1]; // Last element will show furthest away access
