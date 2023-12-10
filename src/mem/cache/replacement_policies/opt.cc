@@ -198,7 +198,6 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
     ReplaceableEntry* victim = candidates[0];
     std::string victim_addr = int_to_hex_str(std::static_pointer_cast<OPTReplData>(victim->replacementData)->addr);
     unsigned victim_next_access = std::numeric_limits<unsigned>::max();
-    DPRINTF(ReplacementOPT, "Looking at victim with address %s\n", victim_addr);
     ReplaceableEntry* speculative_victim = NULL;
 
     std::vector<ReplacementCandidates> LRU_candidates;
@@ -210,7 +209,8 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
 
         // Find trace data
         if(auto search = trace.find(candidate_addr); search != trace.end()){
-            unsigned candidate_next_access = findCandidateAddress(search->second);
+            std::vector<unsigned> temp = search->second;
+            unsigned candidate_next_access = findCandidateAddress(temp);
 
             //Update LRU candidates
             if (candidate_next_access == std::numeric_limits<unsigned>::max())
@@ -225,18 +225,12 @@ OPT::findFurthestUse(const ReplacementCandidates& candidates) const
         }
         else{
             DPRINTF(ReplacementOPT, "Could not find trace data with address %s\n", candidate_addr);
-            speculative_victim = candidate;
-            break;
+            const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
+            continue;
         }
     }
 
-    if (speculative_victim){
-        const_cast<OPT*>(this)->opt_stats.speculativeVictims++;
-        DPRINTF(ReplacementOPT, "No better candidate found. Moving ahead to set 0x%llx as victim.\n", 
-                std::static_pointer_cast<OPTReplData>(speculative_victim->replacementData)->addr);
-        victim = speculative_victim;
-    }
-    else if (LRU_candidates.size() != 0)
+    if (LRU_candidates.size() != 0)
         victim = findEarliestUsed(LRU_candidates);
 
     if(victim_next_access == std::numeric_limits<unsigned>::max())
