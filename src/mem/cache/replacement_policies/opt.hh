@@ -89,6 +89,9 @@ class OPT : public Base
 
         /** Number of times used blocks was the evicted by OPT. */
         statistics::Scalar OPTVictims;
+
+        /** Number of times used blocks was the evicted cause it was not used again. */
+        statistics::Scalar notUsedAgainVictims;
     } opt_stats;
 
   public:
@@ -148,6 +151,7 @@ class OPT : public Base
     ReplaceableEntry* findEmptySpace(const ReplacementCandidates& candidates) const;
     ReplaceableEntry* findEarliestUsed(const ReplacementCandidates& candidates) const;
     ReplaceableEntry* findFurthestUse(const ReplacementCandidates& candidates) const;
+    unsigned findCandidateAddress(std::vector<unsigned>& mem_access) const;
 
 };
 
